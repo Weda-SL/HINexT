@@ -4,6 +4,7 @@ import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
+import { HeadlineTargets } from './HeadlineTargets';
 
 interface Props {
   project: Project;
@@ -190,6 +191,8 @@ export function DataView({ project, analysis, dispatch }: Props) {
           </table>
         </div>
       </section>
+
+      <HeadlineTargets project={project} analysis={analysis} />
     </div>
   );
 }
