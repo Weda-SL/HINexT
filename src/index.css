@@ -66,7 +66,9 @@ select.btn { padding-right: 6px; }
 .dt-control { display: flex; align-items: center; gap: 10px; }
 .dt-control label { font-weight: 600; font-size: 15px; }
 .dt-control input[type='range'] { width: 220px; accent-color: var(--accent); }
-.dt-input { width: 64px !important; }
+.dt-control input.dt-input { width: 84px; max-width: 84px; min-width: 0; border: 1px solid var(--line-2); background: #fff; border-radius: 7px; padding: 6px 10px; font-size: 15px; font-weight: 600; text-align: right; }
+.dt-control input.dt-input:hover { border-color: var(--ink-3); }
+.dt-control .unit { font-size: 13px; color: var(--ink-2); margin-left: -4px; }
 .kpis { display: flex; gap: 8px; flex-wrap: wrap; }
 .kpi { display: flex; flex-direction: column; padding: 6px 12px; border-radius: 8px; background: #f6f6f4; min-width: 92px; border-left: 3px solid transparent; }
 .kpi.hot { border-left-color: var(--hot); }
