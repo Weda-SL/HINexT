@@ -58,6 +58,7 @@ sub { font-size: 0.75em; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .btn.primary:hover { background: var(--accent-ink); }
 .btn.small { padding: 3px 9px; font-size: 12.5px; }
+.btn.icon-btn { font-size: 18px; line-height: 1; padding: 5px 9px; }
 .btn-row { display: flex; gap: 8px; }
 select.btn { padding-right: 6px; }
 
