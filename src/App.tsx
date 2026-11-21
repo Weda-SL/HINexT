@@ -119,7 +119,7 @@ export default function App() {
           <button className="btn ghost" onClick={() => fileInput.current?.click()}>Open</button>
           <button className="btn ghost" onClick={() => downloadProject(project)} title="Save as a .pinch file (Ctrl+S)">Save</button>
           <select
-            className="btn ghost"
+            className="btn ghost examples"
             aria-label="Open an example"
             value=""
             onChange={(e) => {
@@ -142,16 +142,17 @@ export default function App() {
             <option value="kW">kW</option>
             <option value="MW">MW</option>
           </select>
+          <span className="sep" />
+          <div className="dt-control">
+            <span className="dt-label" aria-hidden="true">ΔT<sub>min</sub></span>
+            <NumberField ariaLabel="ΔTmin" className="dt-input" value={project.settings.dtMin} onCommit={(v) => v > 0 && dispatch({ type: 'settings/dtMin', dtMin: v })} />
+            <span className="unit">K</span>
+          </div>
         </nav>
         <input ref={fileInput} type="file" accept=".pinch,.json,application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) openFile(f); e.target.value = ''; }} />
       </header>
 
-      <section className="controlbar" aria-label="ΔTmin and headline targets">
-        <div className="dt-control">
-          <span className="dt-label" aria-hidden="true">ΔT<sub>min</sub></span>
-          <NumberField ariaLabel="ΔTmin" className="dt-input" value={project.settings.dtMin} onCommit={(v) => v > 0 && dispatch({ type: 'settings/dtMin', dtMin: v })} />
-          <span className="unit">K</span>
-        </div>
+      <section className="controlbar" aria-label="Headline targets">
         <div className="kpis">
           <Kpi label="QH,min" value={`${num(c.p(pt.qhMin))}`} unit={c.pUnit} tone="hot" />
           <Kpi label="QC,min" value={`${num(c.p(pt.qcMin))}`} unit={c.pUnit} tone="cold" />
