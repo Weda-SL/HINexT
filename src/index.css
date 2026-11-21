@@ -119,6 +119,11 @@ input.num:hover, input.text:hover, .grid-table select:hover { border-color: var(
 input.num:focus, input.text:focus, .grid-table select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 3px rgba(42, 120, 214, 0.15); }
 input.num::placeholder { color: var(--ink-3); }
 .invalid { border-color: var(--err) !important; }
+.dtc { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+.dtc input.num { border: 1px dashed var(--line-2); width: 72px; }
+.dtc.set input.num { border: 1px solid var(--accent); font-weight: 600; color: var(--accent-ink); }
+.dtc .reset { font-size: 14px; padding: 2px 5px; }
+.dtc .reset-space { width: 25px; flex: none; }
 .derived { display: block; text-align: right; color: var(--ink-2); padding: 5px 7px; font-variant-numeric: tabular-nums; }
 
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
