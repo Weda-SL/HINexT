@@ -20,7 +20,7 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 - **Utilities:** any number of hot and cold utilities, isothermal (steam) or non-isothermal (hot oil, cooling water), each with a cost in $/kW·yr.
 - **Problem Table Algorithm** and **heat cascade**, shown as tables with the pinch highlighted.
 - **Curves:** composite, shifted composite, grand composite (with utility levels placed on it) and balanced composite curves, each exportable as SVG or PNG.
-- **ΔTmin slider** with live update of every target and curve.
+- **ΔTmin input** with live update of every target and curve.
 - **Targets:** QH,min / QC,min, pinch temperatures, multiple-utility duties, minimum units (overall and MER), area (Bath formula), capital, operating and total annual cost.
 - **Capital cost models:** power law `a + b·A^c`, linear `a + b·A`, separate parameters for exchangers / heaters / coolers, or a user-defined expression in `A`; annualised with interest rate and plant life.
 - **Supertargeting:** total annual cost vs ΔTmin with the optimum marked.

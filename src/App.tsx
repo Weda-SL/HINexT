@@ -78,7 +78,6 @@ export default function App() {
   const c = conv(project.settings.units);
   const { pt } = analysis;
   const errors = analysis.issues.filter((i) => i.level === 'error').length;
-  const dtMax = Math.max(50, project.settings.sweep.max, project.settings.dtMin);
 
   const openFile = async (file: File) => {
     try {
@@ -149,16 +148,7 @@ export default function App() {
 
       <section className="controlbar" aria-label="ΔTmin and headline targets">
         <div className="dt-control">
-          <label htmlFor="dt-slider">ΔT<sub>min</sub></label>
-          <input
-            id="dt-slider"
-            type="range"
-            min={0.5}
-            max={dtMax}
-            step={0.5}
-            value={project.settings.dtMin}
-            onChange={(e) => dispatch({ type: 'settings/dtMin', dtMin: Number(e.target.value) })}
-          />
+          <span className="dt-label" aria-hidden="true">ΔT<sub>min</sub></span>
           <NumberField ariaLabel="ΔTmin" className="dt-input" value={project.settings.dtMin} onCommit={(v) => v > 0 && dispatch({ type: 'settings/dtMin', dtMin: v })} />
           <span className="unit">K</span>
         </div>
