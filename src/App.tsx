@@ -10,7 +10,6 @@ import { ProblemTableView } from './ui/ProblemTableView';
 import { CurvesView } from './ui/CurvesView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
-import { conv, money, num } from './ui/format';
 
 type Tab = 'data' | 'table' | 'curves' | 'targets';
 const TABS: { id: Tab; label: string }[] = [
@@ -75,8 +74,6 @@ export default function App() {
   const analysis = useMemo(() => analyse(project), [project]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
-  const c = conv(project.settings.units);
-  const { pt } = analysis;
   const errors = analysis.issues.filter((i) => i.level === 'error').length;
 
   const openFile = async (file: File) => {
@@ -152,21 +149,6 @@ export default function App() {
         <input ref={fileInput} type="file" accept=".pinch,.json,application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) openFile(f); e.target.value = ''; }} />
       </header>
 
-      <section className="controlbar" aria-label="Headline targets">
-        <div className="kpis">
-          <Kpi label="QH,min" value={`${num(c.p(pt.qhMin))}`} unit={c.pUnit} tone="hot" />
-          <Kpi label="QC,min" value={`${num(c.p(pt.qcMin))}`} unit={c.pUnit} tone="cold" />
-          <Kpi
-            label="Pinch (hot / cold)"
-            value={pt.pinches.length ? `${num(c.t(pt.pinches[0] + analysis.dtMin / 2))} / ${num(c.t(pt.pinches[0] - analysis.dtMin / 2))}` : 'none'}
-            unit={pt.pinches.length ? c.tUnit : ''}
-          />
-          <Kpi label="Units (MER)" value={String(analysis.units.mer)} />
-          <Kpi label="Area" value={analysis.area.total === null ? '—' : num(analysis.area.total)} unit={analysis.area.total === null ? '' : 'm²'} />
-          <Kpi label="Total annual cost" value={money(analysis.cost.total)} unit={Number.isFinite(analysis.cost.total) ? '/yr' : ''} />
-        </div>
-      </section>
-
       <nav className="tabs" role="tablist">
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
@@ -188,18 +170,6 @@ export default function App() {
         HINexT {APP_VERSION} · Stage 1A (targeting) · MIT licence · Projects are saved in this browser only; use Save for a .pinch file.
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
-    </div>
-  );
-}
-
-function Kpi({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: 'hot' | 'cold' }) {
-  return (
-    <div className={`kpi ${tone ?? ''}`}>
-      <span className="kpi-label">{label}</span>
-      <span className="kpi-value">
-        {value}
-        {unit ? <span className="kpi-unit"> {unit}</span> : null}
-      </span>
     </div>
   );
 }
