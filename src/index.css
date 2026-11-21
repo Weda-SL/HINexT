@@ -61,6 +61,7 @@ sub { font-size: 0.75em; }
 .btn.icon-btn { font-size: 18px; line-height: 1; padding: 5px 9px; }
 .btn-row { display: flex; gap: 8px; }
 select.btn { padding-right: 6px; }
+.toolbar select.examples { width: 120px; }
 
 /* control bar */
 .controlbar { display: flex; align-items: center; gap: 24px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
