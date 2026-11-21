@@ -40,7 +40,16 @@ All changes to `main` go through a pull request and are reviewed by a maintainer
 - Keep calculations independent of the user interface so they can be tested on their own.
 - Write commit messages in the imperative mood: "Add PDF export", not "Added PDF export".
 
-Development setup instructions will be added here once the project structure is in place.
+### Development setup
+
+```bash
+npm install
+npm run dev     # start the app at http://localhost:5173
+npm test        # run the test suite
+npm run build   # type-check and build
+```
+
+Pinch calculations live in `src/core/` and must not import anything from `src/ui/`. Every change to a project goes through a named action in `src/state/actions.ts`. Benchmark cases with published answers go in `src/examples/` with a matching test in `tests/`.
 
 ## License of contributions
 
