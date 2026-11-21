@@ -112,7 +112,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                       )}
                     </td>
                     <td><NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
-                    <td><NumberField ariaLabel="ΔT contribution" value={s.dtCont ?? undefined} onCommit={(v) => upd({ dtCont: Number.isNaN(v) ? null : v })} placeholder={num(half)} /></td>
+                    <td><DtCell value={s.dtCont} half={half} name={s.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td className="row-actions">
                       <button className="icon" title="Duplicate" aria-label={`Duplicate ${s.name}`} onClick={() => dispatch({ type: 'stream/duplicate', id: s.id })}>⧉</button>
                       <button className="icon danger" title="Delete" aria-label={`Delete ${s.name}`} onClick={() => dispatch({ type: 'stream/delete', id: s.id })}>×</button>
@@ -123,7 +123,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
             </tbody>
           </table>
         </div>
-        <p className="hint">Blank ΔT contribution uses ΔTmin/2 ({num(half)} K). Film coefficients are only needed for area and capital targets.</p>
+        <p className="hint">ΔT contribution: grey values are the default, ΔTmin/2 ({num(half)} K). Type a value to override it for one stream (e.g. a larger value for a gas or a fouling stream, a smaller one for a boiling or condensing stream); ↺ restores the default. Film coefficients are only needed for area and capital targets.</p>
       </section>
 
       <section className="card">
@@ -178,7 +178,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     <td><NumberField ariaLabel="Target temperature" value={c.t(u.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Cost" value={u.cost} onCommit={(v) => upd({ cost: v })} /></td>
                     <td><NumberField ariaLabel="Film coefficient" value={u.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
-                    <td><NumberField ariaLabel="ΔT contribution" value={u.dtCont ?? undefined} onCommit={(v) => upd({ dtCont: Number.isNaN(v) ? null : v })} placeholder={num(half)} /></td>
+                    <td><DtCell value={u.dtCont} half={half} name={u.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td className="r strong">{ok ? num(c.p(t?.duty ?? 0)) : '—'}</td>
                     <td className="r">{ok ? money(t?.opCost ?? 0) : '—'}</td>
                     <td className="row-actions">
@@ -193,6 +193,26 @@ export function DataView({ project, analysis, dispatch }: Props) {
       </section>
 
       <HeadlineTargets project={project} analysis={analysis} />
+    </div>
+  );
+}
+
+/** ΔT contribution cell: shows the default (ΔTmin/2) until the user overrides it. */
+function DtCell({ value, half, name, onChange }: { value: number | null | undefined; half: number; name: string; onChange: (v: number | null) => void }) {
+  const overridden = typeof value === 'number' && Number.isFinite(value);
+  return (
+    <div className={`dtc ${overridden ? 'set' : ''}`}>
+      <NumberField
+        ariaLabel={`ΔT contribution of ${name}${overridden ? '' : ' (default)'}`}
+        value={overridden ? value : undefined}
+        placeholder={num(half)}
+        onCommit={(v) => onChange(Number.isNaN(v) || v < 0 ? null : v)}
+      />
+      {overridden ? (
+        <button className="icon reset" title={`Reset to default (${num(half)} K)`} aria-label={`Reset ΔT contribution of ${name} to default`} onClick={() => onChange(null)}>↺</button>
+      ) : (
+        <span className="reset-space" aria-hidden="true" />
+      )}
     </div>
   );
 }
