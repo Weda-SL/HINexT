@@ -131,8 +131,8 @@ export default function App() {
             {EXAMPLES.map((ex) => <option key={ex.key} value={ex.key}>{ex.title}</option>)}
           </select>
           <span className="sep" />
-          <button className="btn ghost" disabled={!hist.past.length} onClick={() => send({ type: 'undo' })} title={undoLabel} aria-label={undoLabel}>↶ Undo</button>
-          <button className="btn ghost" disabled={!hist.future.length} onClick={() => send({ type: 'redo' })} title={redoLabel} aria-label={redoLabel}>↷ Redo</button>
+          <button className="btn ghost icon-btn" disabled={!hist.past.length} onClick={() => send({ type: 'undo' })} title={undoLabel} aria-label={undoLabel}>↶</button>
+          <button className="btn ghost icon-btn" disabled={!hist.future.length} onClick={() => send({ type: 'redo' })} title={redoLabel} aria-label={redoLabel}>↷</button>
           <span className="sep" />
           <select className="btn ghost" aria-label="Temperature unit" value={project.settings.units.temperature} onChange={(e) => dispatch({ type: 'settings/units', units: { temperature: e.target.value as 'C' | 'K' } })}>
             <option value="C">°C</option>
