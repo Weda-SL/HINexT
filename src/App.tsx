@@ -115,8 +115,8 @@ export default function App() {
           onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
         <nav className="toolbar" aria-label="Project">
-          <button className="btn ghost" onClick={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}>New</button>
           <OpenMenu
+            onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
             onExample={(ex) => dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` })}
           />
