@@ -4,11 +4,12 @@ import { EXAMPLES, type Example } from '../examples';
 interface Props {
   onNew: () => void;
   onFile: () => void;
+  onSave: () => void;
   onExample: (ex: Example) => void;
 }
 
-/** "Open" button with a menu: a new blank project, a file from this computer, or a built-in example. */
-export function OpenMenu({ onNew, onFile, onExample }: Props) {
+/** Main menu (☰): new project, open a file, save to a file, or open a built-in example. */
+export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -33,8 +34,8 @@ export function OpenMenu({ onNew, onFile, onExample }: Props) {
 
   return (
     <div className="menu-root" ref={root}>
-      <button className="btn ghost" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        Open <span className="caret" aria-hidden="true">▾</span>
+      <button className="btn ghost icon-btn menu-btn" aria-haspopup="menu" aria-expanded={open} aria-label="Menu" title="Menu" onClick={() => setOpen((o) => !o)}>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
       </button>
       {open && (
         <div className="menu" role="menu">
@@ -43,8 +44,12 @@ export function OpenMenu({ onNew, onFile, onExample }: Props) {
             <span className="menu-sub">No streams; default steam and cooling water</span>
           </button>
           <button role="menuitem" className="menu-item" onClick={() => pick(onFile)}>
-            <span className="menu-title">From a file on this computer…</span>
-            <span className="menu-sub">.pinch project file</span>
+            <span className="menu-title">Open a file…</span>
+            <span className="menu-sub">.pinch project from this computer</span>
+          </button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onSave)}>
+            <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
+            <span className="menu-sub">Download this project as a .pinch file</span>
           </button>
           <div className="menu-sep" />
           <div className="menu-heading">Examples</div>
