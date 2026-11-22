@@ -10,7 +10,7 @@ import { ProblemTableView } from './ui/ProblemTableView';
 import { CurvesView } from './ui/CurvesView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
-import { OpenMenu } from './ui/OpenMenu';
+import { AppMenu } from './ui/AppMenu';
 import { HistoryButton } from './ui/HistoryButton';
 
 type Tab = 'data' | 'table' | 'curves' | 'targets';
@@ -115,12 +115,12 @@ export default function App() {
           onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
         <nav className="toolbar" aria-label="Project">
-          <OpenMenu
+          <AppMenu
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
+            onSave={() => downloadProject(project)}
             onExample={(ex) => dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` })}
           />
-          <button className="btn ghost" onClick={() => downloadProject(project)} title="Save as a .pinch file (Ctrl+S)">Save</button>
           <span className="sep" />
           <HistoryButton
             kind="undo"
