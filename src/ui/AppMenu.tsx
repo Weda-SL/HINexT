@@ -11,10 +11,14 @@ interface Props {
 /** Main menu (☰): new project, open a file, save to a file, or open a built-in example. */
 export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
   const [open, setOpen] = useState(false);
+  const [sub, setSub] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setSub(false);
+      return;
+    }
     const onDown = (e: PointerEvent) => {
       if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
     };
@@ -51,16 +55,32 @@ export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
             <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
             <span className="menu-sub">Download this project as a .pinch file</span>
           </button>
-          <div className="menu-sep" />
-          <div className="menu-heading">Examples</div>
-          {EXAMPLES.map((ex) => (
-            <button key={ex.key} role="menuitem" className="menu-item" onClick={() => pick(() => onExample(ex))}>
-              <span className="menu-title">{ex.title}</span>
-              <span className="menu-sub">
-                ΔTmin {ex.published.dtMin} K · QH,min {ex.published.qh} kW · QC,min {ex.published.qc} kW
-              </span>
+          <div className="submenu-root" onPointerEnter={() => setSub(true)} onPointerLeave={() => setSub(false)}>
+            <button
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={sub}
+              className={`menu-item has-sub ${sub ? 'active' : ''}`}
+              onClick={() => setSub((v) => !v)}
+              onKeyDown={(e) => e.key === 'ArrowRight' && setSub(true)}
+            >
+              <span className="menu-title">Examples</span>
+              <span className="menu-sub">Published benchmark cases</span>
+              <span className="sub-arrow" aria-hidden="true">›</span>
             </button>
-          ))}
+            {sub && (
+              <div className="menu submenu" role="menu" onKeyDown={(e) => e.key === 'ArrowLeft' && setSub(false)}>
+                {EXAMPLES.map((ex) => (
+                  <button key={ex.key} role="menuitem" className="menu-item" onClick={() => pick(() => onExample(ex))}>
+                    <span className="menu-title">{ex.title}</span>
+                    <span className="menu-sub">
+                      ΔTmin {ex.published.dtMin} K · QH,min {ex.published.qh} kW · QC,min {ex.published.qc} kW
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
