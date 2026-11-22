@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { EXAMPLES, type Example } from '../examples';
 
 interface Props {
+  onNew: () => void;
   onFile: () => void;
   onExample: (ex: Example) => void;
 }
 
-/** "Open" button with a menu: a file from this computer, or a built-in example. */
-export function OpenMenu({ onFile, onExample }: Props) {
+/** "Open" button with a menu: a new blank project, a file from this computer, or a built-in example. */
+export function OpenMenu({ onNew, onFile, onExample }: Props) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -37,6 +38,10 @@ export function OpenMenu({ onFile, onExample }: Props) {
       </button>
       {open && (
         <div className="menu" role="menu">
+          <button role="menuitem" className="menu-item" onClick={() => pick(onNew)}>
+            <span className="menu-title">New blank project</span>
+            <span className="menu-sub">No streams; default steam and cooling water</span>
+          </button>
           <button role="menuitem" className="menu-item" onClick={() => pick(onFile)}>
             <span className="menu-title">From a file on this computer…</span>
             <span className="menu-sub">.pinch project file</span>

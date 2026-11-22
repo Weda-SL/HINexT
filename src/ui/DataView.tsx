@@ -60,7 +60,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
             <tbody>
               {project.streams.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="empty">No streams yet. Add one, or open an example from the menu.</td>
+                  <td colSpan={11} className="empty">No streams yet. Add one, or choose an example from the Open menu.</td>
                 </tr>
               )}
               {project.streams.map((s, i) => {
