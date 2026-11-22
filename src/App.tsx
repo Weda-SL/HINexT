@@ -10,6 +10,7 @@ import { ProblemTableView } from './ui/ProblemTableView';
 import { CurvesView } from './ui/CurvesView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
+import { OpenMenu } from './ui/OpenMenu';
 
 type Tab = 'data' | 'table' | 'curves' | 'targets';
 const TABS: { id: Tab; label: string }[] = [
@@ -113,20 +114,11 @@ export default function App() {
         />
         <nav className="toolbar" aria-label="Project">
           <button className="btn ghost" onClick={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}>New</button>
-          <button className="btn ghost" onClick={() => fileInput.current?.click()}>Open</button>
+          <OpenMenu
+            onFile={() => fileInput.current?.click()}
+            onExample={(ex) => dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` })}
+          />
           <button className="btn ghost" onClick={() => downloadProject(project)} title="Save as a .pinch file (Ctrl+S)">Save</button>
-          <select
-            className="btn ghost examples"
-            aria-label="Open an example"
-            value=""
-            onChange={(e) => {
-              const ex = EXAMPLES.find((x) => x.key === e.target.value);
-              if (ex) dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` });
-            }}
-          >
-            <option value="" disabled>Examples…</option>
-            {EXAMPLES.map((ex) => <option key={ex.key} value={ex.key}>{ex.title}</option>)}
-          </select>
           <span className="sep" />
           <button className="btn ghost icon-btn" disabled={!hist.past.length} onClick={() => send({ type: 'undo' })} title={undoLabel} aria-label={undoLabel}>↶</button>
           <button className="btn ghost icon-btn" disabled={!hist.future.length} onClick={() => send({ type: 'redo' })} title={redoLabel} aria-label={redoLabel}>↷</button>
