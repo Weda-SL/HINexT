@@ -11,6 +11,7 @@ import { CurvesView } from './ui/CurvesView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
 import { OpenMenu } from './ui/OpenMenu';
+import { HistoryButton } from './ui/HistoryButton';
 
 type Tab = 'data' | 'table' | 'curves' | 'targets';
 const TABS: { id: Tab; label: string }[] = [
@@ -87,8 +88,9 @@ export default function App() {
     }
   };
 
-  const undoLabel = hist.past.length ? `Undo: ${hist.present.label}` : 'Nothing to undo';
-  const redoLabel = hist.future.length ? `Redo: ${hist.future[0].label}` : 'Nothing to redo';
+  // Undoable actions, most recent first: the labels of the present entry and every past entry except the first (the starting state).
+  const undoLabels = [hist.present, ...hist.past.slice(1).reverse()].slice(0, hist.past.length).map((e) => e.label);
+  const redoLabels = hist.future.map((e) => e.label);
 
   return (
     <div
@@ -120,8 +122,18 @@ export default function App() {
           />
           <button className="btn ghost" onClick={() => downloadProject(project)} title="Save as a .pinch file (Ctrl+S)">Save</button>
           <span className="sep" />
-          <button className="btn ghost icon-btn" disabled={!hist.past.length} onClick={() => send({ type: 'undo' })} title={undoLabel} aria-label={undoLabel}>↶</button>
-          <button className="btn ghost icon-btn" disabled={!hist.future.length} onClick={() => send({ type: 'redo' })} title={redoLabel} aria-label={redoLabel}>↷</button>
+          <HistoryButton
+            kind="undo"
+            labels={undoLabels}
+            onOne={() => send({ type: 'undo' })}
+            onMany={(count) => send({ type: 'jump', index: hist.past.length - count })}
+          />
+          <HistoryButton
+            kind="redo"
+            labels={redoLabels}
+            onOne={() => send({ type: 'redo' })}
+            onMany={(count) => send({ type: 'jump', index: hist.past.length + count })}
+          />
           <span className="sep" />
           <select className="btn ghost" aria-label="Temperature unit" value={project.settings.units.temperature} onChange={(e) => dispatch({ type: 'settings/units', units: { temperature: e.target.value as 'C' | 'K' } })}>
             <option value="C">°C</option>
@@ -148,7 +160,6 @@ export default function App() {
             {t.id === 'data' && errors > 0 && <span className="count">{errors}</span>}
           </button>
         ))}
-        <span className="history-note" title="Last change">{hist.present.label}</span>
       </nav>
 
       <main className="content">
