@@ -240,3 +240,4 @@ input.num.calc:focus { color: var(--ink); }
 .modal-status.good { background: var(--ok-bg); color: #12734f; }
 .modal-status.bad { background: var(--err-bg); color: var(--err); }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; }
+.grid-table input.num { display: block; margin-left: auto; }
