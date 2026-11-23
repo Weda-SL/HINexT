@@ -241,3 +241,20 @@ input.num.calc:focus { color: var(--ink); }
 .modal-status.bad { background: var(--err-bg); color: var(--err); }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; }
 .grid-table input.num { display: block; margin-left: auto; }
+
+/* profile dialog: temperature points on the left, segments offset half a row so each sits between its two points */
+.profile-grid { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 18px; --pg-row: 38px; }
+.pg-head, .pg-row { display: grid; align-items: center; }
+.pg-col:first-child .pg-head, .pg-col:first-child .pg-row { grid-template-columns: 34px minmax(0, 1fr) 58px; }
+.pg-head.seg, .pg-row.seg { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; }
+.pg-head { height: 40px; border-bottom: 1px solid var(--line-2); font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.pg-h { text-align: right; padding-right: 8px; line-height: 1.25; }
+.pg-row { height: var(--pg-row); border-bottom: 1px solid var(--line); }
+.pg-row.seg { background: #fafaf8; border-left: 2px solid var(--line-2); padding-left: 6px; }
+.pg-offset { height: calc(var(--pg-row) / 2); }
+.pg-label { color: var(--ink-3); font-size: 12.5px; }
+.pg-actions { display: flex; justify-content: flex-end; }
+.pg-row input.num { display: block; margin-left: auto; max-width: 110px; padding: 4px 7px; }
+.pg-cell { display: flex; justify-content: flex-end; }
+.pg-cell .derived { padding-right: 8px; }
+@media (max-width: 560px) { .profile-grid { grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 8px; } }
