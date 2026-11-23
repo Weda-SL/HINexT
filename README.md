@@ -16,7 +16,8 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 
 ## What works now (Stage 1A — targeting)
 
-- **Stream table:** name, supply and target temperature, CP *or* heat load (the other is derived), film coefficient h, optional individual ΔT contribution. Hot/cold is flagged from the temperatures.
+- **Stream table:** name, supply and target temperature, CP or heat load (type either; the other is calculated), film coefficient h, optional individual ΔT contribution. Hot/cold is flagged from the temperatures.
+- **Non-linear streams:** a profile of temperature points with the CP or heat load of each segment between them, per-segment film coefficients, and phase change (a repeated temperature with a heat load). Only the part between the stream's supply and target temperatures is used.
 - **Utilities:** any number of hot and cold utilities, isothermal (steam) or non-isothermal (hot oil, cooling water), each with a cost in $/kW·yr.
 - **Problem Table Algorithm** and **heat cascade**, shown as tables with the pinch highlighted.
 - **Curves:** composite, shifted composite, grand composite (with utility levels placed on it) and balanced composite curves, each exportable as SVG or PNG.
@@ -43,6 +44,7 @@ Utility temperatures, utility costs and film coefficients in the built-in exampl
 
 ## Method notes
 
+- **Phase change:** heat exchanged at one temperature is handled exactly, as a step in the cascade and the curves, so there is no infinite CP and no division by zero.
 - **Shifting:** hot streams shift down and cold streams up by their ΔT contribution (default ΔTmin/2). Utilities shift the same way.
 - **Multiple utilities:** hot utilities are used coldest-first, each taking as much duty as lowers the remaining hot demand one-for-one; cold utilities are used warmest-first, each taking as much as the cascade can feed without a negative heat flow. Demand no utility can meet is reported.
 - **Minimum units:** Euler, U = N − 1 per region, with the pinch(es) splitting the problem into independent regions for the MER target.

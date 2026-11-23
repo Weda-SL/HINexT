@@ -1,4 +1,4 @@
-import { EPS, type ResolvedStream, type ResolvedUtility } from './streams';
+import { EPS, type Piece, type ResolvedStream, type ResolvedUtility } from './streams';
 import type { ProblemTable } from './cascade';
 import type { UtilityTarget } from './utilities';
 
@@ -18,19 +18,29 @@ export function compositeCurve(
   shifted: boolean,
   offset = 0,
 ): Point[] {
-  if (streams.length === 0) return [];
-  const lo = (s: ResolvedStream) => (shifted ? Math.min(s.sTs, s.sTt) : Math.min(s.ts, s.tt));
-  const hi = (s: ResolvedStream) => (shifted ? Math.max(s.sTs, s.sTt) : Math.max(s.ts, s.tt));
-  const temps = uniqueAsc(streams.flatMap((s) => [lo(s), hi(s)]));
+  const pieces = streams.flatMap((s) => s.pieces);
+  if (pieces.length === 0) return [];
+  const lo = (p: Piece) => (shifted ? p.sLo : p.lo);
+  const hi = (p: Piece) => (shifted ? p.sHi : p.hi);
+  const temps = uniqueAsc(pieces.flatMap((p) => [lo(p), hi(p)]));
   const pts: Point[] = [{ h: offset, t: temps[0] }];
   let h = offset;
-  for (let i = 1; i < temps.length; i++) {
-    const a = temps[i - 1];
-    const b = temps[i];
-    let cp = 0;
-    for (const s of streams) if (lo(s) <= a + EPS && hi(s) >= b - EPS) cp += s.cp;
-    h += cp * (b - a);
-    pts.push({ h, t: b });
+  for (let i = 0; i < temps.length; i++) {
+    const t = temps[i];
+    if (i > 0) {
+      const a = temps[i - 1];
+      let cp = 0;
+      for (const p of pieces) if (!p.iso && lo(p) <= a + EPS && hi(p) >= t - EPS) cp += p.cp;
+      h += cp * (t - a);
+      pts.push({ h, t });
+    }
+    // phase change: horizontal step at constant temperature
+    let q = 0;
+    for (const p of pieces) if (p.iso && Math.abs(lo(p) - t) < EPS) q += p.q;
+    if (q > 0) {
+      h += q;
+      pts.push({ h, t });
+    }
   }
   return pts;
 }
@@ -50,7 +60,14 @@ export function composites(streams: ResolvedStream[], pt: ProblemTable, shifted:
 
 /** Grand composite curve: net heat flow (feasible cascade) vs shifted temperature. */
 export function grandComposite(pt: ProblemTable): Point[] {
-  return pt.boundaries.map((t, i) => ({ h: pt.feasible[i], t }));
+  const pts: Point[] = [];
+  pt.boundaries.forEach((t, i) => {
+    // with phase change at t, the curve steps horizontally from the flow arriving at t to the flow leaving it
+    const arriving = i === 0 ? pt.qhMin : pt.feasible[i - 1] + pt.intervals[i - 1].dH;
+    if (Math.abs(arriving - pt.feasible[i]) > 1e-9) pts.push({ h: arriving, t });
+    pts.push({ h: pt.feasible[i], t });
+  });
+  return pts;
 }
 
 export interface UtilityProfile {

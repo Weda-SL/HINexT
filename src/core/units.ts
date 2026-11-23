@@ -36,9 +36,16 @@ export function unitsTarget(streams: ResolvedStream[], pt: ProblemTable, utiliti
     const tBot = cuts[i + 1];
     let count = 0;
     for (const s of streams) {
-      const hi = Math.max(s.sTs, s.sTt);
-      const lo = Math.min(s.sTs, s.sTt);
-      if (Math.min(hi, tTop) - Math.max(lo, tBot) > EPS) count++;
+      const present = s.pieces.some((p) => {
+        if (!p.iso) return Math.min(p.sHi, tTop) - Math.max(p.sLo, tBot) > EPS;
+        // Phase change exactly at a pinch: hot heat at T can only go below T, cold heat only above.
+        const t = p.sLo;
+        if (t < tTop - EPS && t > tBot + EPS) return true;
+        if (Math.abs(t - tTop) < EPS) return s.kind === 'hot';
+        if (Math.abs(t - tBot) < EPS) return s.kind === 'cold';
+        return false;
+      });
+      if (present) count++;
     }
     if (i === 0) count += nHotU;
     if (i === cuts.length - 2) count += nColdU;
