@@ -1,4 +1,4 @@
-import type { CapitalModel, Economics, Project, Settings, Stream, Utility } from '../core/types';
+import type { CapitalModel, Economics, NonLinearProfile, Project, Settings, Stream, Utility } from '../core/types';
 import { newId, newStream, newUtility } from '../core/project';
 
 /**
@@ -11,6 +11,7 @@ export type Action =
   | { type: 'project/rename'; name: string }
   | { type: 'stream/add'; stream?: Partial<Stream> }
   | { type: 'stream/update'; id: string; patch: Partial<Stream> }
+  | { type: 'stream/setProfile'; id: string; profile: 'linear' | 'nonlinear'; data?: NonLinearProfile; h?: number }
   | { type: 'stream/delete'; id: string }
   | { type: 'stream/duplicate'; id: string }
   | { type: 'utility/add'; kind: Utility['kind'] }
@@ -53,6 +54,8 @@ export function describe(action: Action, p: Project): string {
       const keys = Object.keys(action.patch);
       return `Set ${keys.map((k) => FIELD_NAMES[k] ?? k).join(', ')} of ${nameOf(p, action.id)}`;
     }
+    case 'stream/setProfile':
+      return action.profile === 'linear' ? `Make ${nameOf(p, action.id)} linear` : `Set non-linear profile of ${nameOf(p, action.id)}`;
     case 'stream/delete':
       return `Delete stream ${nameOf(p, action.id)}`;
     case 'stream/duplicate':
@@ -105,6 +108,15 @@ export function apply(p: Project, action: Action): Project {
     }
     case 'stream/update':
       return { ...p, streams: p.streams.map((s) => (s.id === action.id ? { ...s, ...action.patch } : s)) };
+    case 'stream/setProfile':
+      return {
+        ...p,
+        streams: p.streams.map((s) =>
+          s.id === action.id
+            ? { ...s, profile: action.profile, profileData: action.data ?? s.profileData, ...(action.h !== undefined ? { h: Number.isNaN(action.h) ? undefined : action.h } : {}) }
+            : s,
+        ),
+      };
     case 'stream/delete':
       return { ...p, streams: p.streams.filter((s) => s.id !== action.id) };
     case 'stream/duplicate': {

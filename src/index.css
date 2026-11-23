@@ -217,3 +217,23 @@ input.num.calc:focus { color: var(--ink); }
   .topbar .toolbar, .tabs, .chart-actions { display: none; }
 }
 .grid-table select.profile-select { width: 120px; min-width: 0; }
+
+/* profile cell + dialog */
+.profile-cell { display: flex; align-items: center; gap: 2px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(20, 20, 18, 0.35); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; z-index: 40; overflow-y: auto; }
+.modal { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25); width: min(720px, 100%); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.modal-head { display: flex; justify-content: space-between; gap: 12px; }
+.modal-head p { margin: 4px 0 0; font-size: 13px; }
+.modal-table { max-height: 50vh; overflow-y: auto; }
+.profile-table td { padding: 3px 6px; }
+.profile-table .pt-row td { border-bottom: none; }
+.profile-table .seg-row td { background: #fafaf8; }
+.profile-table .seg-label { padding-left: 18px; font-size: 12.5px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; flex-wrap: wrap; }
+.check input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); }
+.inline-field { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; color: var(--ink-2); }
+.inline-field input.num { border: 1px solid var(--line-2); width: 80px; }
+.modal-status { font-size: 13px; padding: 8px 12px; border-radius: 8px; }
+.modal-status.good { background: var(--ok-bg); color: #12734f; }
+.modal-status.bad { background: var(--err-bg); color: var(--err); }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; }

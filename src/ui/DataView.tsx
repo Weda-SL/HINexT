@@ -1,10 +1,11 @@
-import type { Dispatch } from 'react';
+import { useState, type Dispatch } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
 import { HeadlineTargets } from './HeadlineTargets';
+import { ProfileDialog } from './ProfileDialog';
 
 interface Props {
   project: Project;
@@ -19,6 +20,8 @@ export function DataView({ project, analysis, dispatch }: Props) {
   const targets = new Map(analysis.utilityTargets.map((t) => [t.id, t]));
   const errorRefs = new Set(analysis.issues.filter((i) => i.level === 'error' && i.ref).map((i) => i.ref));
   const half = project.settings.dtMin / 2;
+  const [editing, setEditing] = useState<string | null>(null);
+  const editingStream = project.streams.find((s) => s.id === editing);
 
   return (
     <div className="stack">
@@ -67,6 +70,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 const r = resolved.get(s.id);
                 const upd = (patch: Partial<typeof s>) => dispatch({ type: 'stream/update', id: s.id, patch });
                 const bad = errorRefs.has(s.id);
+                const nl = s.profile === 'nonlinear';
                 return (
                   <tr key={s.id} className={bad ? 'row-error' : ''}>
                     <td className="muted">{i + 1}</td>
@@ -84,12 +88,30 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     <td><NumberField ariaLabel="Supply temperature" value={c.t(s.tSupply)} onCommit={(v) => upd({ tSupply: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Target temperature" value={c.t(s.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
                     <td>
-                      <select className="profile-select" aria-label="Temperature–enthalpy profile" value="linear" onChange={() => {}}>
-                        <option value="linear">Linear</option>
-                        <option value="nonlinear" disabled>Non-linear (coming)</option>
-                      </select>
+                      <div className="profile-cell">
+                        <select
+                          className="profile-select"
+                          aria-label="Temperature–enthalpy profile"
+                          value={nl ? 'nonlinear' : 'linear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'nonlinear') setEditing(s.id);
+                            else dispatch({ type: 'stream/setProfile', id: s.id, profile: 'linear' });
+                          }}
+                        >
+                          <option value="linear">Linear</option>
+                          <option value="nonlinear">Non-linear</option>
+                        </select>
+                        {nl && <button className="btn ghost small" onClick={() => setEditing(s.id)}>Edit…</button>}
+                      </div>
                     </td>
-                    <td>
+                    {nl ? (
+                      <>
+                        <td><span className="derived" title="CP changes along this stream; edit it in the profile">varies</span></td>
+                        <td><span className="derived">{num(r ? c.p(r.duty) : NaN)}</span></td>
+                      </>
+                    ) : (
+                      <>
+                        <td>
                       <NumberField
                         ariaLabel="CP"
                         className={s.spec === 'cp' ? '' : 'calc'}
@@ -98,7 +120,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                         onCommit={(v) => upd({ spec: 'cp', cp: c.pIn(v) })}
                       />
                     </td>
-                    <td>
+                        <td>
                       <NumberField
                         ariaLabel="Heat load"
                         className={s.spec === 'duty' ? '' : 'calc'}
@@ -107,7 +129,15 @@ export function DataView({ project, analysis, dispatch }: Props) {
                         onCommit={(v) => upd({ spec: 'duty', duty: c.pIn(v) })}
                       />
                     </td>
-                    <td><NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
+                      </>
+                    )}
+                    <td>
+                      {nl && !s.profileData?.hConstant ? (
+                        <span className="derived" title="Set per segment in the profile">per segment</span>
+                      ) : (
+                        <NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" />
+                      )}
+                    </td>
                     <td><DtCell value={s.dtCont} half={half} name={s.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td className="row-actions">
                       <button className="icon" title="Duplicate" aria-label={`Duplicate ${s.name}`} onClick={() => dispatch({ type: 'stream/duplicate', id: s.id })}>⧉</button>
@@ -188,6 +218,18 @@ export function DataView({ project, analysis, dispatch }: Props) {
         </div>
       </section>
 
+      {editingStream && (
+        <ProfileDialog
+          stream={editingStream}
+          units={project.settings.units}
+          dtMin={project.settings.dtMin}
+          onCancel={() => setEditing(null)}
+          onApply={(data, h) => {
+            dispatch({ type: 'stream/setProfile', id: editingStream.id, profile: 'nonlinear', data, h: h ?? NaN });
+            setEditing(null);
+          }}
+        />
+      )}
       <HeadlineTargets project={project} analysis={analysis} />
     </div>
   );

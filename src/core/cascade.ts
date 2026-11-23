@@ -16,17 +16,30 @@ export interface PTInterval {
   dH: number;
 }
 
+/** Phase-change (latent) heat at one shifted temperature. */
+export interface LatentPoint {
+  t: number;
+  /** Heat released by hot streams at t, kW */
+  hot: number;
+  /** Heat absorbed by cold streams at t, kW */
+  cold: number;
+  hotIds: string[];
+  coldIds: string[];
+}
+
 export interface ProblemTable {
   /** Shifted temperature boundaries, descending */
   boundaries: number[];
   intervals: PTInterval[];
-  /** Heat flow at each boundary with zero hot utility (may go negative) */
+  /** Phase-change heat at boundaries (empty when no stream changes phase) */
+  latent: LatentPoint[];
+  /** Heat flow just below each boundary with zero hot utility (may go negative) */
   infeasible: number[];
-  /** Heat flow at each boundary with QHmin added at the top (never negative) */
+  /** Heat flow just below each boundary with QHmin added at the top (never negative) */
   feasible: number[];
   qhMin: number;
   qcMin: number;
-  /** Shifted pinch temperatures (interior boundaries where feasible flow = 0) */
+  /** Shifted pinch temperatures (interior boundaries where the feasible flow = 0) */
   pinches: number[];
   /** True when one utility target is zero (threshold problem) */
   threshold: boolean;
@@ -39,12 +52,15 @@ function uniqueDesc(values: number[]): number[] {
   return out;
 }
 
-/** The Problem Table Algorithm (Linnhoff & Flower, 1978). */
+/**
+ * The Problem Table Algorithm (Linnhoff & Flower, 1978), extended to
+ * piecewise-linear streams and phase change (heat at a single temperature).
+ */
 export function problemTable(streams: ResolvedStream[]): ProblemTable {
   if (streams.length === 0) {
-    return { boundaries: [], intervals: [], infeasible: [], feasible: [], qhMin: 0, qcMin: 0, pinches: [], threshold: true };
+    return { boundaries: [], intervals: [], latent: [], infeasible: [], feasible: [], qhMin: 0, qcMin: 0, pinches: [], threshold: true };
   }
-  const boundaries = uniqueDesc(streams.flatMap((s) => [s.sTs, s.sTt]));
+  const boundaries = uniqueDesc(streams.flatMap((s) => s.pieces.flatMap((p) => [p.sLo, p.sHi])));
   const intervals: PTInterval[] = [];
   for (let i = 0; i < boundaries.length - 1; i++) {
     const tTop = boundaries[i];
@@ -54,16 +70,15 @@ export function problemTable(streams: ResolvedStream[]): ProblemTable {
     let sumCpHot = 0;
     let sumCpCold = 0;
     for (const s of streams) {
-      const hi = Math.max(s.sTs, s.sTt);
-      const lo = Math.min(s.sTs, s.sTt);
-      if (hi >= tTop - EPS && lo <= tBot + EPS) {
-        if (s.kind === 'hot') {
-          hotIds.push(s.id);
-          sumCpHot += s.cp;
-        } else {
-          coldIds.push(s.id);
-          sumCpCold += s.cp;
-        }
+      let cp = 0;
+      for (const p of s.pieces) if (!p.iso && p.sHi >= tTop - EPS && p.sLo <= tBot + EPS) cp += p.cp;
+      if (cp <= 0) continue;
+      if (s.kind === 'hot') {
+        hotIds.push(s.id);
+        sumCpHot += cp;
+      } else {
+        coldIds.push(s.id);
+        sumCpCold += cp;
       }
     }
     const dT = tTop - tBot;
@@ -71,18 +86,60 @@ export function problemTable(streams: ResolvedStream[]): ProblemTable {
     intervals.push({ tTop, tBot, dT, hotIds, coldIds, sumCpHot, sumCpCold, netCp, dH: netCp * dT });
   }
 
-  const infeasible = [0];
-  for (const iv of intervals) infeasible.push(infeasible[infeasible.length - 1] + iv.dH);
-  const qhMin = Math.max(0, -Math.min(...infeasible));
-  const feasible = infeasible.map((q) => clean(q + qhMin));
+  const latentAt = boundaries.map((t) => {
+    const lp: LatentPoint = { t, hot: 0, cold: 0, hotIds: [], coldIds: [] };
+    for (const s of streams)
+      for (const p of s.pieces)
+        if (p.iso && Math.abs(p.sLo - t) < EPS) {
+          if (s.kind === 'hot') {
+            lp.hot += p.q;
+            lp.hotIds.push(s.id);
+          } else {
+            lp.cold += p.q;
+            lp.coldIds.push(s.id);
+          }
+        }
+    return lp;
+  });
+
+  // Flow arriving at each boundary from above, and leaving below it after any latent heat.
+  const above: number[] = [];
+  const below: number[] = [];
+  let flow = 0;
+  for (let i = 0; i < boundaries.length; i++) {
+    if (i > 0) flow += intervals[i - 1].dH;
+    above.push(flow);
+    flow += latentAt[i].hot - latentAt[i].cold;
+    below.push(flow);
+  }
+  const qhMin = Math.max(0, -Math.min(0, ...above, ...below));
+  const feasible = below.map((q) => clean(q + qhMin));
   const qcMin = feasible[feasible.length - 1];
+  const t0 = tol(qhMin, qcMin);
 
   const pinches: number[] = [];
-  for (let i = 1; i < feasible.length - 1; i++) if (Math.abs(feasible[i]) < tol(qhMin, qcMin)) pinches.push(boundaries[i]);
-  // A zero at the very top or bottom is a pinch only if that utility is non-zero there,
-  // which cannot happen — so those are threshold cases.
-  const threshold = qhMin < tol(qhMin, qcMin) || qcMin < tol(qhMin, qcMin);
-  return { boundaries, intervals, infeasible, feasible, qhMin: clean(qhMin), qcMin: clean(qcMin), pinches, threshold };
+  for (let i = 0; i < boundaries.length; i++) {
+    const a = above[i] + qhMin;
+    const b = below[i] + qhMin;
+    const interior = i > 0 && i < boundaries.length - 1;
+    const touchesAbove = i > 0 && Math.abs(a) < t0;
+    const touchesBelow = i < boundaries.length - 1 && Math.abs(b) < t0;
+    if ((interior && (touchesAbove || touchesBelow)) || (!interior && latentAt[i].hot + latentAt[i].cold > 0 && (touchesAbove || touchesBelow))) {
+      pinches.push(boundaries[i]);
+    }
+  }
+  const threshold = qhMin < t0 || qcMin < t0;
+  return {
+    boundaries,
+    intervals,
+    latent: latentAt.filter((l) => l.hot > 0 || l.cold > 0),
+    infeasible: below.map(clean),
+    feasible,
+    qhMin: clean(qhMin),
+    qcMin: clean(qcMin),
+    pinches,
+    threshold,
+  };
 }
 
 function tol(...scale: number[]): number {
@@ -129,10 +186,10 @@ export function cascadeMin(items: HeatItem[]): number {
 }
 
 export function streamItems(streams: ResolvedStream[]): HeatItem[] {
-  return streams.map((s) => ({
-    kind: 'range' as const,
-    top: Math.max(s.sTs, s.sTt),
-    bot: Math.min(s.sTs, s.sTt),
-    cp: s.kind === 'hot' ? s.cp : -s.cp,
-  }));
+  return streams.flatMap((s) =>
+    s.pieces.map((p): HeatItem => {
+      const sign = s.kind === 'hot' ? 1 : -1;
+      return p.iso ? { kind: 'point', t: p.sLo, q: sign * p.q } : { kind: 'range', top: p.sHi, bot: p.sLo, cp: sign * p.cp };
+    }),
+  );
 }
