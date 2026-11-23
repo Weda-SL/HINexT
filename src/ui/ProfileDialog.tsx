@@ -110,11 +110,18 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
           />
         </span>
         <span className="pg-cell">
-          {data.hConstant ? (
-            <span className="derived">{num(h)}</span>
-          ) : (
-            <NumberField ariaLabel={`Film coefficient of segment ${k + 1}`} value={seg.h} placeholder="—" onCommit={(v) => setSeg(k, { h: Number.isNaN(v) ? undefined : v })} />
-          )}
+          <NumberField
+            ariaLabel={`Film coefficient of segment ${k + 1}`}
+            value={data.hConstant ? h : seg.h}
+            placeholder="—"
+            onCommit={(v) => {
+              const val = Number.isNaN(v) ? undefined : v;
+              if (data.hConstant) {
+                setH(val);
+                setData((d) => ({ ...d, segments: d.segments.map((sg) => ({ ...sg, h: val })) }));
+              } else setSeg(k, { h: val });
+            }}
+          />
         </span>
       </div>
     );
@@ -143,13 +150,22 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
         </header>
 
         <label className="check">
-          <input type="checkbox" checked={data.hConstant} onChange={(e) => setData((d) => ({ ...d, hConstant: e.target.checked }))} />
-          Same film coefficient for every segment
-          {data.hConstant && (
-            <span className="inline-field">
-              h <NumberField ariaLabel="Film coefficient for all segments" value={h} placeholder="—" onCommit={(v) => setH(Number.isNaN(v) ? undefined : v)} /> kW/m²K
-            </span>
-          )}
+          <input
+            type="checkbox"
+            checked={data.hConstant}
+            onChange={(e) => {
+              const on = e.target.checked;
+              if (on) {
+                // use the first value in the table (or the stream's h) for every segment
+                const first = data.segments.find((sg) => finite(sg.h))?.h ?? h;
+                setH(first);
+                setData((d) => ({ ...d, hConstant: true, segments: d.segments.map((sg) => ({ ...sg, h: first })) }));
+              } else {
+                setData((d) => ({ ...d, hConstant: false, segments: d.segments.map((sg) => ({ ...sg, h: sg.h ?? h })) }));
+              }
+            }}
+          />
+          Same film coefficient for every segment (typing h in any row fills them all)
         </label>
 
         <div className="profile-grid modal-table">
