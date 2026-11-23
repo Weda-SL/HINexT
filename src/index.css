@@ -221,11 +221,14 @@ input.num.calc:focus { color: var(--ink); }
 /* profile cell + dialog */
 .profile-cell { display: flex; align-items: center; gap: 2px; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(20, 20, 18, 0.35); display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; z-index: 40; overflow-y: auto; }
-.modal { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25); width: min(720px, 100%); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+.modal { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25); width: min(720px, 100%); padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
 .modal-head { display: flex; justify-content: space-between; gap: 12px; }
 .modal-head p { margin: 4px 0 0; font-size: 13px; }
 .modal-table { max-height: 50vh; overflow-y: auto; }
-.profile-table td { padding: 3px 6px; }
+.profile-table td { padding: 1px 6px; height: 30px; }
+.profile-table input.num { padding: 3px 7px; }
+.profile-table .icon { padding: 1px 6px; }
+.profile-table th { padding-top: 2px; padding-bottom: 4px; }
 .profile-table .pt-row td { border-bottom: none; }
 .profile-table .seg-row td { background: #fafaf8; }
 .profile-table .seg-label { padding-left: 18px; font-size: 12.5px; }
