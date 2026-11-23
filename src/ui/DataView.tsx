@@ -36,7 +36,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Process streams</h2>
-            <p className="muted">Hot or cold is set from the temperatures. Enter either CP or heat load; the other is calculated.</p>
+            <p className="muted">Hot or cold is set from the temperatures. Type either CP or heat load and the other is calculated (shown in grey). If you then change a temperature, the value you typed is kept and the other is recalculated.</p>
           </div>
           <button className="btn primary" onClick={() => dispatch({ type: 'stream/add' })}>+ Add stream</button>
         </header>
@@ -49,7 +49,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 <th>Type</th>
                 <th className="r">T supply<br /><span className="unit">{c.tUnit}</span></th>
                 <th className="r">T target<br /><span className="unit">{c.tUnit}</span></th>
-                <th>Enter</th>
+                <th>Profile</th>
                 <th className="r">CP<br /><span className="unit">{c.cpUnit}</span></th>
                 <th className="r">Heat load<br /><span className="unit">{c.pUnit}</span></th>
                 <th className="r">h<br /><span className="unit">kW/m²K</span></th>
@@ -84,32 +84,28 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     <td><NumberField ariaLabel="Supply temperature" value={c.t(s.tSupply)} onCommit={(v) => upd({ tSupply: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Target temperature" value={c.t(s.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
                     <td>
-                      <select
-                        aria-label="Quantity entered"
-                        value={s.spec}
-                        onChange={(e) => {
-                          const spec = e.target.value as 'cp' | 'duty';
-                          // carry the derived value across so nothing is lost
-                          upd(spec === 'duty' ? { spec, duty: r?.duty ?? s.duty } : { spec, cp: r?.cp ?? s.cp });
-                        }}
-                      >
-                        <option value="cp">CP</option>
-                        <option value="duty">Load</option>
+                      <select className="profile-select" aria-label="Temperature–enthalpy profile" value="linear" onChange={() => {}}>
+                        <option value="linear">Linear</option>
+                        <option value="nonlinear" disabled>Non-linear (coming)</option>
                       </select>
                     </td>
                     <td>
-                      {s.spec === 'cp' ? (
-                        <NumberField ariaLabel="CP" value={c.p(s.cp ?? NaN)} onCommit={(v) => upd({ cp: c.pIn(v) })} />
-                      ) : (
-                        <span className="derived">{num(r ? c.p(r.cp) : NaN, 4)}</span>
-                      )}
+                      <NumberField
+                        ariaLabel="CP"
+                        className={s.spec === 'cp' ? '' : 'calc'}
+                        value={c.p(s.spec === 'cp' ? (s.cp ?? NaN) : (r?.cp ?? NaN))}
+                        dp={4}
+                        onCommit={(v) => upd({ spec: 'cp', cp: c.pIn(v) })}
+                      />
                     </td>
                     <td>
-                      {s.spec === 'duty' ? (
-                        <NumberField ariaLabel="Heat load" value={c.p(s.duty ?? NaN)} onCommit={(v) => upd({ duty: c.pIn(v) })} />
-                      ) : (
-                        <span className="derived">{num(r ? c.p(r.duty) : NaN)}</span>
-                      )}
+                      <NumberField
+                        ariaLabel="Heat load"
+                        className={s.spec === 'duty' ? '' : 'calc'}
+                        value={c.p(s.spec === 'duty' ? (s.duty ?? NaN) : (r?.duty ?? NaN))}
+                        dp={3}
+                        onCommit={(v) => upd({ spec: 'duty', duty: c.pIn(v) })}
+                      />
                     </td>
                     <td><NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
                     <td><DtCell value={s.dtCont} half={half} name={s.name} onChange={(dtCont) => upd({ dtCont })} /></td>
