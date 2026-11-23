@@ -56,20 +56,6 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
       const last = d.segments[d.segments.length - 1];
       return { ...d, temps: [...d.temps, NaN], segments: [...d.segments, { spec: last?.spec ?? 'cp', h: last?.h }] };
     });
-  const insertAfter = (k: number) =>
-    setData((d) => {
-      const a = d.temps[k];
-      const b = d.temps[k + 1];
-      const mid = finite(a) && finite(b) ? +((a + b) / 2).toFixed(2) : NaN;
-      const seg = d.segments[k];
-      // split the segment in two; a heat load is split in proportion
-      const half: ProfileSegment = seg.spec === 'duty' && finite(seg.duty) ? { ...seg, duty: seg.duty / 2 } : { ...seg };
-      return {
-        ...d,
-        temps: [...d.temps.slice(0, k + 1), mid, ...d.temps.slice(k + 1)],
-        segments: [...d.segments.slice(0, k), half, { ...half }, ...d.segments.slice(k + 1)],
-      };
-    });
   const removePoint = (k: number) =>
     setData((d) => {
       if (d.temps.length <= 2) return d;
@@ -87,7 +73,12 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
         </td>
         <td colSpan={3} />
         <td className="row-actions">
-          <button className="icon danger" title="Remove this point" aria-label={`Remove point ${k + 1}`} disabled={data.temps.length <= 2} onClick={() => removePoint(k)}>×</button>
+          {k === data.temps.length - 1 && (
+            <>
+              <button className="icon" title="Add a point after this one" aria-label="Add a point" onClick={addPoint}>+</button>
+              <button className="icon danger" title="Remove the last point" aria-label="Remove the last point" disabled={data.temps.length <= 2} onClick={() => removePoint(k)}>×</button>
+            </>
+          )}
         </td>
       </tr>,
     );
@@ -134,9 +125,7 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
               <NumberField ariaLabel={`Film coefficient of segment ${k + 1}`} value={seg.h} placeholder="—" onCommit={(v) => setSeg(k, { h: Number.isNaN(v) ? undefined : v })} />
             )}
           </td>
-          <td className="row-actions">
-            <button className="icon" title="Insert a point in this segment" aria-label={`Insert a point in segment ${k + 1}`} onClick={() => insertAfter(k)}>+</button>
-          </td>
+          <td />
         </tr>,
       );
     }
@@ -189,7 +178,6 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
             <tbody>{rows}</tbody>
           </table>
         </div>
-        <button className="btn small" onClick={addPoint}>+ Add point</button>
 
         <div className={`modal-status ${errors.length ? 'bad' : 'good'}`}>
           {errors.length ? (
