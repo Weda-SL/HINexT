@@ -63,72 +63,61 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
       return { ...d, temps: d.temps.filter((_, i) => i !== k), segments: d.segments.filter((_, i) => i !== segIdx) };
     });
 
-  const rows: React.ReactNode[] = [];
-  data.temps.forEach((t, k) => {
-    rows.push(
-      <tr key={`p${k}`} className="pt-row">
-        <td className="muted">T{k + 1}</td>
-        <td>
-          <NumberField ariaLabel={`Temperature point ${k + 1}`} value={c.t(t)} onCommit={(v) => setTemp(k, c.tIn(v))} />
-        </td>
-        <td colSpan={3} />
-        <td className="row-actions">
-          {k === data.temps.length - 1 && (
-            <>
-              <button className="icon" title="Add a point after this one" aria-label="Add a point" onClick={addPoint}>+</button>
-              <button className="icon danger" title="Remove the last point" aria-label="Remove the last point" disabled={data.temps.length <= 2} onClick={() => removePoint(k)}>×</button>
-            </>
-          )}
-        </td>
-      </tr>,
-    );
-    if (k < data.segments.length) {
-      const seg = data.segments[k];
-      const a = t;
-      const b = data.temps[k + 1];
-      const dT = finite(a) && finite(b) ? Math.abs(b - a) : NaN;
-      const phase = finite(dT) && dT < 1e-7;
-      const cp = phase ? NaN : seg.spec === 'cp' ? seg.cp : finite(seg.duty) && dT > 0 ? seg.duty / dT : NaN;
-      const duty = seg.spec === 'duty' || phase ? seg.duty : finite(seg.cp) && finite(dT) ? seg.cp * dT : NaN;
-      rows.push(
-        <tr key={`s${k}`} className="seg-row">
-          <td />
-          <td className="seg-label">
-            {phase ? <span className="tag pinch">phase change</span> : null}
-          </td>
-          <td>
-            {phase ? (
-              <span className="derived" title="Infinite CP: all the heat is exchanged at one temperature">∞</span>
-            ) : (
-              <NumberField
-                ariaLabel={`CP of segment ${k + 1}`}
-                className={seg.spec === 'cp' ? '' : 'calc'}
-                value={c.p(cp ?? NaN)}
-                dp={4}
-                onCommit={(v) => setSeg(k, { spec: 'cp', cp: c.pIn(v) })}
-              />
-            )}
-          </td>
-          <td>
+  const pointRows = data.temps.map((t, k) => (
+    <div key={k} className="pg-row">
+      <span className="pg-label">T{k + 1}</span>
+      <NumberField ariaLabel={`Temperature point ${k + 1}`} value={c.t(t)} onCommit={(v) => setTemp(k, c.tIn(v))} />
+      <span className="pg-actions">
+        {k === data.temps.length - 1 && (
+          <>
+            <button className="icon" title="Add a point after this one" aria-label="Add a point" onClick={addPoint}>+</button>
+            <button className="icon danger" title="Remove the last point" aria-label="Remove the last point" disabled={data.temps.length <= 2} onClick={() => removePoint(k)}>×</button>
+          </>
+        )}
+      </span>
+    </div>
+  ));
+
+  const segmentRows = data.segments.map((seg, k) => {
+    const a = data.temps[k];
+    const b = data.temps[k + 1];
+    const dT = finite(a) && finite(b) ? Math.abs(b - a) : NaN;
+    const phase = finite(dT) && dT < 1e-7;
+    const cp = phase ? NaN : seg.spec === 'cp' ? seg.cp : finite(seg.duty) && dT > 0 ? seg.duty / dT : NaN;
+    const duty = seg.spec === 'duty' || phase ? seg.duty : finite(seg.cp) && finite(dT) ? seg.cp * dT : NaN;
+    return (
+      <div key={k} className="pg-row seg">
+        <span className="pg-cell">
+          {phase ? (
+            <span className="tag pinch" title="Phase change: all the heat is exchanged at one temperature, so CP is infinite">∞ phase change</span>
+          ) : (
             <NumberField
-              ariaLabel={`Heat load of segment ${k + 1}`}
-              className={seg.spec === 'duty' || phase ? '' : 'calc'}
-              value={c.p(duty ?? NaN)}
-              dp={3}
-              onCommit={(v) => setSeg(k, { spec: 'duty', duty: c.pIn(v) })}
+              ariaLabel={`CP of segment ${k + 1}`}
+              className={seg.spec === 'cp' ? '' : 'calc'}
+              value={c.p(cp ?? NaN)}
+              dp={4}
+              onCommit={(v) => setSeg(k, { spec: 'cp', cp: c.pIn(v) })}
             />
-          </td>
-          <td>
-            {data.hConstant ? (
-              <span className="derived">{num(h)}</span>
-            ) : (
-              <NumberField ariaLabel={`Film coefficient of segment ${k + 1}`} value={seg.h} placeholder="—" onCommit={(v) => setSeg(k, { h: Number.isNaN(v) ? undefined : v })} />
-            )}
-          </td>
-          <td />
-        </tr>,
-      );
-    }
+          )}
+        </span>
+        <span className="pg-cell">
+          <NumberField
+            ariaLabel={`Heat load of segment ${k + 1}`}
+            className={seg.spec === 'duty' || phase ? '' : 'calc'}
+            value={c.p(duty ?? NaN)}
+            dp={3}
+            onCommit={(v) => setSeg(k, { spec: 'duty', duty: c.pIn(v) })}
+          />
+        </span>
+        <span className="pg-cell">
+          {data.hConstant ? (
+            <span className="derived">{num(h)}</span>
+          ) : (
+            <NumberField ariaLabel={`Film coefficient of segment ${k + 1}`} value={seg.h} placeholder="—" onCommit={(v) => setSeg(k, { h: Number.isNaN(v) ? undefined : v })} />
+          )}
+        </span>
+      </div>
+    );
   });
 
   const lo = Math.min(stream.tSupply, stream.tTarget);
@@ -163,20 +152,24 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
           )}
         </label>
 
-        <div className="table-wrap modal-table">
-          <table className="grid-table profile-table">
-            <thead>
-              <tr>
-                <th />
-                <th className="r">Temperature<br /><span className="unit">{c.tUnit}</span></th>
-                <th className="r">CP<br /><span className="unit">{c.cpUnit}</span></th>
-                <th className="r">Heat load<br /><span className="unit">{c.pUnit}</span></th>
-                <th className="r">h<br /><span className="unit">kW/m²K</span></th>
-                <th aria-label="Row actions" />
-              </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-          </table>
+        <div className="profile-grid modal-table">
+          <div className="pg-col">
+            <div className="pg-head">
+              <span className="pg-label" />
+              <span className="pg-h">Temperature<br /><span className="unit">{c.tUnit}</span></span>
+              <span className="pg-actions" />
+            </div>
+            {pointRows}
+          </div>
+          <div className="pg-col segs">
+            <div className="pg-head seg">
+              <span className="pg-h">CP<br /><span className="unit">{c.cpUnit}</span></span>
+              <span className="pg-h">Heat load<br /><span className="unit">{c.pUnit}</span></span>
+              <span className="pg-h">h<br /><span className="unit">kW/m²K</span></span>
+            </div>
+            <div className="pg-offset" aria-hidden="true" />
+            {segmentRows}
+          </div>
         </div>
 
         <div className={`modal-status ${errors.length ? 'bad' : 'good'}`}>
