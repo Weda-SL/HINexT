@@ -103,7 +103,7 @@ export function ProfileDialog({ stream, units, dtMin, onApply, onCancel }: Props
         <tr key={`s${k}`} className="seg-row">
           <td />
           <td className="seg-label">
-            {phase ? <span className="tag pinch">phase change</span> : <span className="muted">segment {k + 1}</span>}
+            {phase ? <span className="tag pinch">phase change</span> : null}
           </td>
           <td>
             {phase ? (
