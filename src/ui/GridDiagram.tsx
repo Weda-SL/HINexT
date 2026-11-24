@@ -302,6 +302,24 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                     <text x={right - pw / 2} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
                       {cpText}
                     </text>
+                    {/* branch CPs: purple pills just below and right of the stream's CP, one per branch, level with its line */}
+                    {(['above', 'below'] as const)
+                      .filter((reg) => branchesOf(s.id, reg))
+                      .map((reg, li) =>
+                        branchesOf(s.id, reg)!.map((f, k) => {
+                          const txt = s.nonlinear ? `${num(f * 100)}%` : num(c.p(s.cp * f));
+                          const w = Math.max(24, txt.length * 6.4 + 12);
+                          const xr = right + 8 + li * (w + 4);
+                          const yb = y + (k === 0 ? 17 : k * BR);
+                          return (
+                            <g key={`${reg}-${k}`}>
+                              <title>{`Branch ${k + 1}${hasPinch ? ` ${reg} the pinch` : ''}: ${s.nonlinear ? txt + ' of the flow' : 'CP ' + txt}`}</title>
+                              <rect x={xr - w} y={yb - 8} width={w} height={16} rx={8} fill="#ece9fb" stroke="#c9c2f2" />
+                              <text x={xr - w / 2} y={yb + 3.5} fontSize="10" fontWeight="600" fill={PINCH} textAnchor="middle">{txt}</text>
+                            </g>
+                          );
+                        }),
+                      )}
                   </>
                 );
               })()}
@@ -332,18 +350,6 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                           {k > 0 && (
                             <path d={`M${xa} ${y} L${xa + 12} ${yb} L${xb - 12} ${yb} L${xb} ${y}`} fill="none" stroke={color} strokeWidth={isPending && pending?.branch === k ? 4 : 2.5} strokeLinejoin="round" />
                           )}
-                          {(() => {
-                            // branch CP in a pill on the branch, at the far end of the split (away from the pinch matches)
-                            const txt = s.nonlinear ? `${num(_f * 100)}%` : `CP ${num(c.p(s.cp * _f))}`;
-                            const w = txt.length * 5.8 + 12;
-                            const cx = reg === 'above' ? xa + 16 + w / 2 : xb - 16 - w / 2;
-                            return (
-                              <g pointerEvents="none">
-                                <rect x={cx - w / 2} y={yb - 8} width={w} height={16} rx={8} fill="#ece9fb" stroke="#c9c2f2" />
-                                <text x={cx} y={yb + 3.5} fontSize="9.5" fontWeight="600" fill={PINCH} textAnchor="middle">{txt}</text>
-                              </g>
-                            );
-                          })()}
                           {onMatch && k > 0 && (
                             <rect
                               x={xa + 8}
