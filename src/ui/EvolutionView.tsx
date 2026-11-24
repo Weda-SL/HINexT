@@ -129,6 +129,11 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
               Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as its own node, since its share of the flow is fixed)' : ''}. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
             </p>
           </div>
+          {history.length > 0 && (
+            <button className="btn" onClick={() => { setPick(null); dispatch({ type: 'evolution/clear' }); }} title="Discard the optimization steps and start again from the MER design on the HEN design tab">
+              Restart from MER design
+            </button>
+          )}
         </header>
         <GridDiagram project={shownProject} analysis={analysis} net={shown} selected={selected} onSelect={setSelected} highlight={highlight} issueFilter={(m) => !PINCH_NOTE.test(m)} />
       </section>
@@ -263,7 +268,7 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
             <h2>Trade-off history</h2>
             <p className="muted">One row per evolution step, starting from the MER design. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
           </div>
-          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Start again from the design</button>}
+          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Restart from MER design</button>}
         </header>
         {history.length === 0 ? (
           <p className="muted">Apply a step to start the history; the current network is saved as the starting point.</p>
