@@ -225,11 +225,11 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               {s.kind === 'hot' ? (
                 <>
                   <text x={x1 - 2} y={y - 8} fontSize="10.5" fill={INK2}>{num(c.t(s.ts))}°</text>
-                  <text x={x2 + 6} y={y + 4} fontSize="10.5" fill={INK2}>{num(c.t(s.tt))}°</text>
+                  <text x={x2 + 2} y={y - 8} fontSize="10.5" fill={INK2} textAnchor="end">{num(c.t(s.tt))}°</text>
                 </>
               ) : (
                 <>
-                  <text x={x2 + 6} y={y + 4} fontSize="10.5" fill={INK2}>{num(c.t(s.ts))}°</text>
+                  <text x={x2 + 2} y={y - 8} fontSize="10.5" fill={INK2} textAnchor="end">{num(c.t(s.ts))}°</text>
                   <text x={x1 + 2} y={y - 8} fontSize="10.5" fill={INK2}>{num(c.t(s.tt))}°</text>
                 </>
               )}
@@ -291,8 +291,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               )}
             </g>
           );
-          const temps = (cy: number, tin: number, tout: number, flowRight: boolean) =>
-            r && Number.isFinite(tin) ? (
+          const temps = (cy: number, tin: number, tout: number, flowRight: boolean, streamId?: string) =>
+            r && Number.isFinite(tin) && !(streamId && Math.abs(tout - (byId.get(streamId)?.tt ?? NaN)) < 1e-6) ? (
               <g pointerEvents="none">
                 <text x={x + (flowRight ? 13 : -13)} y={cy - 8} fontSize="9.5" fill={INK2} textAnchor={flowRight ? 'start' : 'end'}>
                   {num(c.t(tout))}
@@ -329,8 +329,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 <line x1={x} x2={x} y1={yh} y2={yc} stroke={stroke} strokeWidth={sel ? 2.5 : 1.5} />
                 {circle(yh, '#fff')}
                 {circle(yc, '#fff')}
-                {temps(yh, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true)}
-                {temps(yc, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false)}
+                {temps(yh, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
+                {temps(yc, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold)}
                 {loadLabel(yc, true)}
               </>,
             );
@@ -342,7 +342,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           return g(
             <>
               {circle(y, u.kind === 'heater' ? HEATER : COOLER, u.kind === 'heater' ? 'H' : 'C')}
-              {u.kind === 'heater' ? temps(y, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false) : temps(y, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true)}
+              {u.kind === 'heater' ? temps(y, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold) : temps(y, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
               {loadLabel(y, true)}
             </>,
           );
