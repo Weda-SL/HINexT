@@ -197,15 +197,16 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                     </label>
                   )}
                 </div>
-                <dl className="kv">
+                <dl className="kv kv-minor">
+                  <dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd>
+                  <dt>Area</dt><dd>{num(selRes.area)} m²</dd>
+                  <dt>Capital</dt><dd>{money(selRes.capital)}</dd>
+                </dl>
+                <dl className="kv kv-major">
                   <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}</dd>
                   <dt>Cold side</dt><dd>{num(c.t(selRes.coldIn))} → {num(c.t(selRes.coldOut))} {c.tUnit}</dd>
                   <dt>ΔT hot end / cold end</dt><dd>{num(selRes.dtHot)} / {num(selRes.dtCold)} K</dd>
                   <dt>LMTD</dt><dd>{num(selRes.lmtd)} K</dd>
-                  <dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd>
-                  <dt>Area</dt><dd>{num(selRes.area)} m²</dd>
-                  <dt>Capital</dt><dd>{money(selRes.capital)}</dd>
-                  <dt>Side</dt><dd>{selRes.side === 'above' ? 'Above the pinch' : 'Below the pinch'}</dd>
                 </dl>
               </div>
           </div>
