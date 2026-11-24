@@ -302,15 +302,6 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                     <text x={right - pw / 2} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
                       {cpText}
                     </text>
-                    {/* branch CPs of each split, listed under the name in branch order (top to bottom) */}
-                    {(['above', 'below'] as const)
-                      .filter((reg) => branchesOf(s.id, reg))
-                      .map((reg, li) => (
-                        <text key={reg} x={right} y={y + 4 + (li + 1) * BR} fontSize="10" fill={INK2} textAnchor="end">
-                          {hasPinch ? (reg === 'above' ? 'above: ' : 'below: ') : 'split: '}
-                          {branchesOf(s.id, reg)!.map((f) => (s.nonlinear ? `${num(f * 100)}%` : num(c.p(s.cp * f)))).join(' + ')}
-                        </text>
-                      ))}
                   </>
                 );
               })()}
@@ -341,6 +332,18 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                           {k > 0 && (
                             <path d={`M${xa} ${y} L${xa + 12} ${yb} L${xb - 12} ${yb} L${xb} ${y}`} fill="none" stroke={color} strokeWidth={isPending && pending?.branch === k ? 4 : 2.5} strokeLinejoin="round" />
                           )}
+                          {(() => {
+                            // branch CP in a pill on the branch, at the far end of the split (away from the pinch matches)
+                            const txt = s.nonlinear ? `${num(_f * 100)}%` : `CP ${num(c.p(s.cp * _f))}`;
+                            const w = txt.length * 5.8 + 12;
+                            const cx = reg === 'above' ? xa + 16 + w / 2 : xb - 16 - w / 2;
+                            return (
+                              <g pointerEvents="none">
+                                <rect x={cx - w / 2} y={yb - 8} width={w} height={16} rx={8} fill="#ece9fb" stroke="#c9c2f2" />
+                                <text x={cx} y={yb + 3.5} fontSize="9.5" fontWeight="600" fill={PINCH} textAnchor="middle">{txt}</text>
+                              </g>
+                            );
+                          })()}
                           {onMatch && k > 0 && (
                             <rect
                               x={xa + 8}
