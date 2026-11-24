@@ -93,7 +93,7 @@ select.btn { padding-right: 6px; }
 /* control bar */
 .dt-control { display: flex; align-items: center; gap: 10px; }
 .dt-label { font-weight: 600; font-size: 15px; }
-.dt-control input.dt-input { width: 84px; max-width: 84px; min-width: 0; border: 1px solid var(--line-2); background: #fff; border-radius: 7px; padding: 6px 10px; font-size: 15px; font-weight: 600; text-align: right; }
+.dt-control input.dt-input { width: 52px; max-width: 52px; min-width: 0; border: 1px solid var(--line-2); background: #fff; border-radius: 7px; padding: 6px 8px; font-size: 15px; font-weight: 600; text-align: right; }
 .dt-control input.dt-input:hover { border-color: var(--ink-3); }
 .dt-control .unit { font-size: 13px; color: var(--ink-2); margin-left: -4px; }
 
