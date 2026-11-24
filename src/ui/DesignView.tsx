@@ -26,9 +26,12 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const selRes = net.units.find((r) => r.id === selected);
   const pc = net.pinchCounts;
 
-  const addRemainingUtilities = () => {
-    const extra = analysis.streams.map((s) => utilityUnitFor(analysis, net, s.id)).filter((u) => u !== null);
-    if (extra.length) dispatch({ type: 'network/set', units: [...units, ...extra], label: `Add ${extra.length} heater/cooler${extra.length > 1 ? 's' : ''} for remaining duty` });
+  const remainingOf = (kind: 'hot' | 'cold') => analysis.streams.filter((s) => s.kind === kind && (net.streams.get(s.id)?.remaining ?? 0) > 1e-9);
+  const addRemaining = (kind: 'hot' | 'cold') => {
+    const extra = remainingOf(kind).map((s) => utilityUnitFor(analysis, net, s.id)).filter((u) => u !== null);
+    if (!extra.length) return;
+    const what = kind === 'cold' ? 'heater' : 'cooler';
+    dispatch({ type: 'network/set', units: [...units, ...extra], label: `Add ${extra.length} ${what}${extra.length > 1 ? 's' : ''} for remaining duty` });
   };
 
   const target = {
@@ -56,12 +59,15 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           <div>
             <h2>Grid diagram</h2>
             <p className="muted">
-              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. Click a coloured pill at the right to add a heater or cooler for the remaining duty.
+              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them.
             </p>
           </div>
           <div className="btn-row">
-            <button className="btn" onClick={addRemainingUtilities} disabled={!analysis.streams.some((s) => (net.streams.get(s.id)?.remaining ?? 0) > 1e-9)}>
-              Add utilities for remaining duty
+            <button className="btn" onClick={() => addRemaining('cold')} disabled={!remainingOf('cold').length} title="Add a heater on every cold stream that still needs heat">
+              Add heaters
+            </button>
+            <button className="btn" onClick={() => addRemaining('hot')} disabled={!remainingOf('hot').length} title="Add a cooler on every hot stream that still needs cooling">
+              Add coolers
             </button>
             <button className="btn ghost" disabled={!units.length} onClick={() => { dispatch({ type: 'network/set', units: [], label: 'Clear network' }); setSelected(null); }}>
               Clear
