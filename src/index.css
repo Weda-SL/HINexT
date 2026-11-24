@@ -332,3 +332,9 @@ g:hover > .unit-del { stroke: #6b7280; }
 
 .guide-help { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
 .guide-help ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+/* each pinch side of the guide as its own panel */
+.guide-col { border: 1px solid var(--line-2); border-radius: 10px; padding: 14px 16px; background: #fbfaf8; }
+.guide-col h3 { font-size: 15px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; }
+.guide-col h3::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: #4b3cc0; }
+.guide-col .guide-item { background: #fff; }
+.guide-grid { margin-top: 4px; }
