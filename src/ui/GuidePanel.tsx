@@ -85,12 +85,7 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
   };
 
   return (
-    <section className="card" data-keep-section>
-      <header className="card-head">
-        <div>
-          <h2>Design guide</h2>
-        </div>
-      </header>
+    <section className="card guide-card" data-keep-section aria-label="Design guide">
       <div className="guide-grid">{guide.regions.map(region)}</div>
       <div className="guide-help">
       <details className="guide-rules">
