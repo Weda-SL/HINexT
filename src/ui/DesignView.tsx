@@ -4,6 +4,8 @@ import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { tickOffLoad, unitName, unitTags, type NetworkResult } from '../core/network';
 import { GridDiagram } from './GridDiagram';
+import { GuidePanel } from './GuidePanel';
+import { newId } from '../core/project';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
 import { exchangerFor, utilityDuty, utilityUnitFor } from './networkHelpers';
@@ -97,6 +99,17 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           }}
         />
       </section>
+
+      <GuidePanel
+        project={project}
+        analysis={analysis}
+        net={net}
+        onAdd={(g) => {
+          const id = newId('e');
+          dispatch({ type: 'unit/add', unit: { id, kind: 'exchanger', hot: g.hot, cold: g.cold, load: +g.load.toFixed(6), x: g.x }, label: `Add exchanger ${streams.get(g.hot)?.name}–${streams.get(g.cold)?.name} (guide)` });
+          setSelected(id);
+        }}
+      />
 
       <div className="two-col">
         <section className="card">

@@ -283,3 +283,20 @@ input.num.calc:focus { color: var(--ink); }
 .mt { margin-top: 18px; }
 .mt-s { margin-top: 10px; }
 .small { font-size: 12px; }
+
+/* design guide */
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+.guide-col h3 { font-size: 13.5px; margin: 0 0 4px; }
+.guide-col .hint { margin: 4px 0; }
+.guide-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.guide-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; }
+.guide-item.best { border-color: #4b3cc0; box-shadow: 0 0 0 2px rgba(75, 60, 192, 0.12); }
+.guide-title { font-size: 13px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.guide-title .tag { margin-left: 6px; }
+.g-hot { color: #a32625; font-weight: 600; }
+.g-cold { color: #1d5aa6; font-weight: 600; }
+.guide-why { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+.guide-bad { margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
+.guide-bad summary, .guide-rules summary { cursor: pointer; }
+.guide-rules { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
+.guide-rules ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
