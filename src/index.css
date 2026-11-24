@@ -261,3 +261,8 @@ input.num.calc:focus { color: var(--ink); }
 
 .dl-btn { display: inline-flex; align-items: center; padding: 5px 7px; }
 .menu.dl-menu { left: auto; right: 0; min-width: 190px; }
+
+.cascade-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 28px; align-items: start; }
+.cascade-fig { max-width: 640px; }
+.cascade-svg { display: block; }
+@media (max-width: 1100px) { .cascade-grid { grid-template-columns: minmax(0, 1fr); } }
