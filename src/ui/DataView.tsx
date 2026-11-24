@@ -161,7 +161,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Utilities</h2>
-            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first. Type a duty to limit a utility; the rest of the demand passes to the next hotter (or colder) utility.</p>
           </div>
           <div className="btn-row">
             <button className="btn" onClick={() => dispatch({ type: 'utility/add', kind: 'hot' })}>+ Hot utility</button>
