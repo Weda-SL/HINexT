@@ -7,6 +7,7 @@ import { conv, money, num } from './format';
 import { HeadlineTargets } from './HeadlineTargets';
 import { ProfileDialog } from './ProfileDialog';
 import { CurvesView } from './CurvesView';
+import { ProblemTableView } from './ProblemTableView';
 
 interface Props {
   project: Project;
@@ -154,6 +155,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
       </section>
 
       {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="composites" />}
+      {analysis.streams.length > 0 && <ProblemTableView project={project} analysis={analysis} part="table" />}
 
       <section className="card">
         <header className="card-head">

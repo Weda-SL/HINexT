@@ -2,7 +2,7 @@ import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import { conv, num } from './format';
 
-export function ProblemTableView({ project, analysis }: { project: Project; analysis: Analysis }) {
+export function ProblemTableView({ project, analysis, part }: { project: Project; analysis: Analysis; part: 'table' | 'cascade' }) {
   const c = conv(project.settings.units);
   const { pt } = analysis;
   const names = new Map(analysis.streams.map((s) => [s.id, s.name]));
@@ -14,8 +14,7 @@ export function ProblemTableView({ project, analysis }: { project: Project; anal
     return <section className="card empty-card">Add at least one valid stream to see the Problem Table.</section>;
   }
 
-  return (
-    <div className="stack">
+  if (part === 'table') return (
       <section className="card">
         <header className="card-head">
           <div>
@@ -62,7 +61,9 @@ export function ProblemTableView({ project, analysis }: { project: Project; anal
           </table>
         </div>
       </section>
+  );
 
+  return (
       <section className="card">
         <header className="card-head">
           <div>
@@ -126,6 +127,5 @@ export function ProblemTableView({ project, analysis }: { project: Project; anal
           )}
         </div>
       </section>
-    </div>
   );
 }

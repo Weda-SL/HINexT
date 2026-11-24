@@ -16,7 +16,7 @@ import { HistoryButton } from './ui/HistoryButton';
 type Tab = 'data' | 'table' | 'curves' | 'targets';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'data', label: 'Data' },
-  { id: 'table', label: 'Problem table' },
+  { id: 'table', label: 'Heat cascade' },
   { id: 'curves', label: 'Curves' },
   { id: 'targets', label: 'Targets & costs' },
 ];
@@ -164,7 +164,7 @@ export default function App() {
 
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
-        {tab === 'table' && <ProblemTableView project={project} analysis={analysis} />}
+        {tab === 'table' && <ProblemTableView project={project} analysis={analysis} part="cascade" />}
         {tab === 'curves' && <CurvesView project={project} analysis={analysis} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
