@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { NetworkResult } from '../core/network';
@@ -10,11 +10,9 @@ interface Props {
   analysis: Analysis;
   net: NetworkResult;
   onAdd: (s: Suggestion) => void;
-  /** Feasibility checks of the current network, shown at the top */
-  checks: ReactNode;
 }
 
-export function GuidePanel({ project, analysis, net, onAdd, checks }: Props) {
+export function GuidePanel({ project, analysis, net, onAdd }: Props) {
   const c = conv(project.settings.units);
   const guide = useMemo(() => designGuide(project, analysis, net), [project, analysis, net]);
   const [showAll, setShowAll] = useState(false);
@@ -88,14 +86,10 @@ export function GuidePanel({ project, analysis, net, onAdd, checks }: Props) {
     <section className="card">
       <header className="card-head">
         <div>
-          <h2>Design guide and checks</h2>
-          <p className="muted">Problems in the current network, then the next matches by the pinch design method. Each suggestion has been tried on your network and keeps ΔT ≥ ΔTmin; the first one is the textbook choice.</p>
+          <h2>Design guide</h2>
+          <p className="muted">Next matches by the pinch design method. Each suggestion has been tried on your network and keeps ΔT ≥ ΔTmin; the first one is the textbook choice.</p>
         </div>
       </header>
-      <div className="guide-checks">
-        <h3>Checks</h3>
-        {checks}
-      </div>
       <div className="guide-grid">{guide.regions.map(region)}</div>
       <details className="guide-rules">
         <summary>The rules being applied</summary>

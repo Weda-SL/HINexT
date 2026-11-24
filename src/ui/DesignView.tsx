@@ -72,8 +72,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
     { label: 'Total annual cost', design: money(net.total), target: money(target.total), diff: Number.isFinite(target.total) ? net.total - target.total : undefined, unit: '$/yr' },
   ];
 
-  const errors = net.issues.filter((i) => i.level === 'error');
-  const warnings = net.issues.filter((i) => i.level === 'warning');
 
   return (
     <div className="stack">
@@ -138,25 +136,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
       </section>
 
       <GuidePanel
-        checks={
-          <>
-        {net.issues.length === 0 ? (
-          <p className="muted">{units.length ? 'No problems found.' : 'Place units on the grid to see feasibility checks.'}</p>
-        ) : (
-          <div className="issues">
-            {[...errors, ...warnings].map((i, k) => (
-              <div
-                key={k}
-                className={`issue ${i.level} ${i.unit ? 'clickable' : ''}`}
-                onClick={() => i.unit && setSelected(i.unit)}
-              >
-                <span className="issue-tag">{i.level === 'error' ? 'Error' : 'Check'}</span> {i.message}
-              </div>
-            ))}
-          </div>
-        )}
-          </>
-        }
         project={project}
         analysis={analysis}
         net={net}
