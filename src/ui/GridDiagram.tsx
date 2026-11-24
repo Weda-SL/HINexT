@@ -344,8 +344,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 onClick={(e) => { e.stopPropagation(); onDelete(u.id); }}
               >
                 <title>Delete (Del key)</title>
-                <circle cx={x} cy={cy - 27} r={8} fill={ERR} stroke="#fff" strokeWidth="1.5" />
-                <path d={`M${x - 3} ${cy - 30} l6 6 M${x + 3} ${cy - 30} l-6 6`} stroke="#fff" strokeWidth="1.8" strokeLinecap="round" pointerEvents="none" />
+                <circle cx={x} cy={cy - 27} r={9} fill="transparent" />
+                <path className="unit-del" d={`M${x - 4} ${cy - 31} l8 8 M${x + 4} ${cy - 31} l-8 8`} stroke={INK2} strokeWidth="1.8" strokeLinecap="round" pointerEvents="none" />
               </g>
             ) : null;
           const g = (children: React.ReactNode) => (
