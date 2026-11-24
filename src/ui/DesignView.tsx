@@ -2,7 +2,7 @@ import { useState, type Dispatch } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
-import { tickOffLoad, unitName, type NetworkResult } from '../core/network';
+import { tickOffLoad, unitName, unitTags, type NetworkResult } from '../core/network';
 import { GridDiagram } from './GridDiagram';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
@@ -21,6 +21,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const units = project.network?.units ?? [];
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
+  const tags = unitTags(project.network?.units ?? []);
   const sel = units.find((u) => u.id === selected) ?? null;
   const selRes = net.units.find((r) => r.id === selected);
   const pc = net.pinchCounts;
@@ -92,7 +93,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
 
       <div className="two-col">
         <section className="card">
-          <h2>{sel ? unitName(sel, streams, utils) : 'Selected unit'}</h2>
+          <h2>{sel ? unitName(sel, streams, utils, tags) : 'Selected unit'}</h2>
           {!sel || !selRes ? (
             <p className="muted">Click a unit on the grid to edit its load, see its temperatures and area, or delete it.</p>
           ) : (
@@ -103,7 +104,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                   <NumberField
                     ariaLabel="Unit load"
                     value={c.p(sel.load)}
-                    onCommit={(v) => Number.isFinite(v) && v >= 0 && dispatch({ type: 'unit/update', id: sel.id, patch: { load: c.pIn(v) }, label: `Set load of ${unitName(sel, streams, utils)}` })}
+                    onCommit={(v) => Number.isFinite(v) && v >= 0 && dispatch({ type: 'unit/update', id: sel.id, patch: { load: c.pIn(v) }, label: `Set load of ${unitName(sel, streams, utils, tags)}` })}
                   />
                 </label>
                 {sel.kind === 'exchanger' && (
@@ -118,7 +119,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                         others.streams.set(id, sel.x < 0.5 ? { ...sr, remainingAbove: sr.remainingAbove + sel.load } : { ...sr, remainingBelow: sr.remainingBelow + sel.load });
                       }
                       const max = tickOffLoad(others, sel.hot!, sel.cold!, sel.x);
-                      dispatch({ type: 'unit/update', id: sel.id, patch: { load: +max.toFixed(6) }, label: `Tick off ${unitName(sel, streams, utils)}` });
+                      dispatch({ type: 'unit/update', id: sel.id, patch: { load: +max.toFixed(6) }, label: `Tick off ${unitName(sel, streams, utils, tags)}` });
                     }}
                   >
                     Tick off

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type Dispatch } from 'react';
 import type { NetUnit, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
-import { analyseNetwork, unitName, type NetworkResult } from '../core/network';
+import { analyseNetwork, unitName, unitTags, type NetworkResult } from '../core/network';
 import { applyShift, breakLoop, findLoops, findPaths, loopCount, maxShift, solveShift, type Loop, type UtilityPath } from '../core/evolution';
 import { GridDiagram } from './GridDiagram';
 import { NumberField } from './NumberField';
@@ -25,10 +25,11 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   const units = useMemo(() => project.network?.units ?? [], [project.network]);
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
+  const tags = unitTags(project.network?.units ?? []);
   const nodeName = (id: string) => streams.get(id)?.name ?? utils.get(id)?.name ?? id;
   const unitLabel = (id: string) => {
     const u = units.find((v) => v.id === id);
-    return u ? unitName(u, streams, utils) : id;
+    return u ? unitName(u, streams, utils, tags) : id;
   };
 
   const lc = loopCount(units);

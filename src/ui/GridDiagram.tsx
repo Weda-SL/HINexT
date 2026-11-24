@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NetUnit, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
-import { PINCH_X, type NetworkResult } from '../core/network';
+import { PINCH_X, unitTags, type NetworkResult } from '../core/network';
 import type { ResolvedStream } from '../core/streams';
 import { conv, num } from './format';
 import { DownloadMenu, saveSvgFile, saveSvgPdf, saveSvgPng } from './svgExport';
@@ -68,6 +68,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const rowOf = new Map(rows.map((s, i) => [s.id, i]));
   const byId = new Map(rows.map((s) => [s.id, s]));
   const res = new Map(net.units.map((r) => [r.id, r]));
+  const tags = unitTags(units);
   const issueLevel = new Map<string, 'error' | 'warning'>();
   for (const i of net.issues) if (i.unit && issueLevel.get(i.unit) !== 'error') issueLevel.set(i.unit, i.level);
 
@@ -282,10 +283,10 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           const ring = hl !== undefined ? highlight!.color : sel ? PINCH : null;
           const circle = (cy: number, fill: string, label?: string) => (
             <g>
-              {ring && <circle cx={x} cy={cy} r={13} fill="none" stroke={ring} strokeWidth="3" opacity="0.8" />}
-              <circle cx={x} cy={cy} r={9} fill={fill} stroke={stroke} strokeWidth={lvl ? 2.5 : 1.5} />
+              {ring && <circle cx={x} cy={cy} r={15} fill="none" stroke={ring} strokeWidth="3" opacity="0.8" />}
+              <circle cx={x} cy={cy} r={11} fill={fill} stroke={stroke} strokeWidth={lvl ? 2.5 : 1.5} />
               {label && (
-                <text x={x} y={cy + 4} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle" pointerEvents="none">
+                <text x={x} y={cy + 3.5} fontSize="9.5" fontWeight="700" fill={fill === '#fff' ? stroke : '#fff'} textAnchor="middle" pointerEvents="none">
                   {label}
                 </text>
               )}
@@ -294,13 +295,13 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           const temps = (cy: number, tin: number, tout: number, flowRight: boolean, streamId?: string) =>
             r && Number.isFinite(tin) && !(streamId && Math.abs(tout - (byId.get(streamId)?.tt ?? NaN)) < 1e-6) ? (
               <g pointerEvents="none">
-                <text x={x + (flowRight ? 13 : -13)} y={cy - 8} fontSize="9.5" fill={INK2} textAnchor={flowRight ? 'start' : 'end'}>
+                <text x={x + (flowRight ? 15 : -15)} y={cy - 8} fontSize="9.5" fill={INK2} textAnchor={flowRight ? 'start' : 'end'}>
                   {num(c.t(tout))}
                 </text>
               </g>
             ) : null;
           const loadLabel = (cy: number, below: boolean) => (
-            <text x={x} y={cy + (below ? 24 : -16)} fontSize="10.5" fontWeight="600" fill={stroke} textAnchor="middle" pointerEvents="none">
+            <text x={x} y={cy + (below ? 26 : -18)} fontSize="10.5" fontWeight="600" fill={stroke} textAnchor="middle" pointerEvents="none">
               {num(c.p(u.load))}
               {hl !== undefined && (
                 <tspan fill={highlight!.color} fontWeight="700">{hl > 0 ? ' +x' : ' −x'}</tspan>
@@ -327,8 +328,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             return g(
               <>
                 <line x1={x} x2={x} y1={yh} y2={yc} stroke={stroke} strokeWidth={sel ? 2.5 : 1.5} />
-                {circle(yh, '#fff')}
-                {circle(yc, '#fff')}
+                {circle(yh, '#fff', tags.get(u.id)?.slice(1))}
+                {circle(yc, '#fff', tags.get(u.id)?.slice(1))}
                 {temps(yh, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
                 {temps(yc, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold)}
                 {loadLabel(yc, true)}
@@ -341,7 +342,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           const y = yRow(row);
           return g(
             <>
-              {circle(y, u.kind === 'heater' ? HEATER : COOLER, u.kind === 'heater' ? 'H' : 'C')}
+              {circle(y, u.kind === 'heater' ? HEATER : COOLER, tags.get(u.id))}
               {u.kind === 'heater' ? temps(y, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold) : temps(y, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
               {loadLabel(y, true)}
             </>,

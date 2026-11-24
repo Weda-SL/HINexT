@@ -188,6 +188,7 @@ export function analyseNetwork(project: Project, analysis: Analysis): NetworkRes
   const dtMin = analysis.dtMin;
   const issues: NetIssue[] = [];
   const profiles = new Map(analysis.streams.map((s) => [s.id, profileOf(s)]));
+  const tags = unitTags(units);
 
   // Walk every stream in flow order to get inlet/outlet temperatures of each unit side.
   const side = new Map<string, { hotIn: number; hotOut: number; coldIn: number; coldOut: number; hotQ0: number; coldQ0: number }>();
@@ -241,7 +242,7 @@ export function analyseNetwork(project: Project, analysis: Analysis): NetworkRes
     let hH: number | undefined;
     let hC: number | undefined;
     let valid = true;
-    const name = unitName(u, streams, utils);
+    const name = unitName(u, streams, utils, tags);
     if (u.kind === 'exchanger') {
       if (!hs || !cs || hs.kind !== 'hot' || cs.kind !== 'cold') valid = false;
       hH = hs ? pieceH(hs, profiles.get(hs.id)!, r.hotQ0, u.load) : undefined;
@@ -319,14 +320,14 @@ export function analyseNetwork(project: Project, analysis: Analysis): NetworkRes
         const cpH = ph.cpAt(r.hotQ0 + u.load - 1e-9);
         const cpC = pc.cpAt(r.coldQ0);
         if (cpH > cpC + 1e-9) {
-          issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils)}: above the pinch CP hot (${fmt(cpH)}) should be ≤ CP cold (${fmt(cpC)}).` });
+          issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils, tags)}: above the pinch CP hot (${fmt(cpH)}) should be ≤ CP cold (${fmt(cpC)}).` });
         }
       }
       if (u.x >= PINCH_X && Math.abs(r.hotIn - hp) < 1e-6 && Math.abs(r.coldOut - cp) < 1e-6) {
         const cpH = ph.cpAt(r.hotQ0);
         const cpC = pc.cpAt(r.coldQ0 + u.load - 1e-9);
         if (cpH + 1e-9 < cpC) {
-          issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils)}: below the pinch CP hot (${fmt(cpH)}) should be ≥ CP cold (${fmt(cpC)}).` });
+          issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils, tags)}: below the pinch CP hot (${fmt(cpH)}) should be ≥ CP cold (${fmt(cpC)}).` });
         }
       }
     }
@@ -429,15 +430,27 @@ function crossPinchHeat(
   return Math.min(hotAbove(), coldBelow());
 }
 
+/**
+ * Short tags for units, numbered in the order they were added:
+ * exchangers E1, E2…, heaters H1…, coolers C1….
+ */
+export function unitTags(units: NetUnit[]): Map<string, string> {
+  const count = { exchanger: 0, heater: 0, cooler: 0 };
+  const prefix = { exchanger: 'E', heater: 'H', cooler: 'C' };
+  return new Map(units.map((u) => [u.id, `${prefix[u.kind]}${++count[u.kind]}`]));
+}
+
 export function unitName(
   u: NetUnit,
   streams: Map<string, ResolvedStream>,
   utils: Map<string, ResolvedUtility>,
+  tags?: Map<string, string>,
 ): string {
   const n = (id?: string) => (id ? (streams.get(id)?.name ?? utils.get(id)?.name ?? '?') : '?');
-  if (u.kind === 'exchanger') return `${n(u.hot)}–${n(u.cold)}`;
-  if (u.kind === 'heater') return `Heater on ${n(u.cold)}`;
-  return `Cooler on ${n(u.hot)}`;
+  const tag = tags?.get(u.id);
+  const body = u.kind === 'exchanger' ? `${n(u.hot)}–${n(u.cold)}` : u.kind === 'heater' ? `heater on ${n(u.cold)}` : `cooler on ${n(u.hot)}`;
+  if (tag) return `${tag} (${body})`;
+  return u.kind === 'exchanger' ? body : body[0].toUpperCase() + body.slice(1);
 }
 
 /**
