@@ -263,3 +263,23 @@ input.num.calc:focus { color: var(--ink); }
 .streams-th { text-align: center !important; width: 1%; }
 .stream-arrows { display: block; overflow: visible; }
 .grid-table tfoot td { padding: 8px; border-top: 1px solid var(--line-2); border-bottom: none; }
+
+/* MER design / evolution */
+.grid-chart { position: relative; }
+.grid-svg { display: block; user-select: none; touch-action: none; }
+.grid-hint { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); background: #222; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 12.5px; pointer-events: none; }
+.field-select { border: 1px solid var(--line-2); border-radius: 7px; padding: 5px 8px; background: #fff; }
+.danger-text { color: var(--err); }
+.issue.clickable { cursor: pointer; }
+.issue.clickable:hover { filter: brightness(0.97); }
+.compare td, .compare th { white-space: nowrap; }
+.pick-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.pick { text-align: left; border: 1px solid var(--line-2); background: #fff; border-radius: 8px; padding: 8px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.pick:hover { background: #f7f6f3; }
+.pick.on.loop { border-color: #4b3cc0; box-shadow: 0 0 0 2px rgba(75, 60, 192, 0.15); }
+.pick.on.path { border-color: #eb6834; box-shadow: 0 0 0 2px rgba(235, 104, 52, 0.15); }
+.pick-title { font-weight: 600; font-size: 13px; }
+.pick-sub { font-size: 12px; color: var(--ink-2); }
+.mt { margin-top: 18px; }
+.mt-s { margin-top: 10px; }
+.small { font-size: 12px; }

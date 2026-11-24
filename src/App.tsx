@@ -9,12 +9,17 @@ import { DataView } from './ui/DataView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
 import { AppMenu } from './ui/AppMenu';
+import { DesignView } from './ui/DesignView';
+import { EvolutionView } from './ui/EvolutionView';
+import { analyseNetwork } from './core/network';
 import { HistoryButton } from './ui/HistoryButton';
 
-type Tab = 'data' | 'targets';
+type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'data', label: 'Data' },
   { id: 'targets', label: 'Targets & costs' },
+  { id: 'design', label: 'MER design' },
+  { id: 'evolution', label: 'Evolution' },
 ];
 
 const store = new LocalStore();
@@ -70,6 +75,7 @@ export default function App() {
   }, [toast]);
 
   const analysis = useMemo(() => analyse(project), [project]);
+  const net = useMemo(() => analyseNetwork(project, analysis), [project, analysis]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
   const errors = analysis.issues.filter((i) => i.level === 'error').length;
@@ -160,11 +166,13 @@ export default function App() {
 
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
+        {tab === 'design' && <DesignView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
+        {tab === 'evolution' && <EvolutionView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
 
       <footer className="footer">
-        HINexT {APP_VERSION} · Stage 1A (targeting) · MIT licence · Projects are saved in this browser only; use Save for a .pinch file.
+        HINexT {APP_VERSION} · Stage 1 (targeting, MER design, evolution) · MIT licence · Projects are saved in this browser only; use Save for a .pinch file.
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

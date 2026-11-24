@@ -97,4 +97,29 @@ export const EXAMPLES: Example[] = [
       economics: defaultEconomics(),
     }),
   },
+  {
+    key: 'kemp-4-mer',
+    title: 'Four-stream problem with its MER network (Kemp)',
+    source: 'As above, with the MER design from the pinch design method (6 units, QH = 20 kW, QC = 60 kW). Use it to try network evolution.',
+    published: { dtMin: 10, qh: 20, qc: 60, hotPinch: 90, coldPinch: 80 },
+    build: () => {
+      const base = EXAMPLES[0].build();
+      return {
+        ...base,
+        id: 'ex_kemp4_mer',
+        name: 'Four-stream problem — MER network (Kemp)',
+        description: 'Textbook MER design for the four-stream problem; one loop (Hot 4–Cold 1 above and below the pinch).',
+        network: {
+          units: [
+            { id: 'E1', kind: 'exchanger', hot: 's2', cold: 's3', load: 240, x: 0.3 },
+            { id: 'E2', kind: 'exchanger', hot: 's4', cold: 's1', load: 90, x: 0.38 },
+            { id: 'H1', kind: 'heater', cold: 's1', utility: 'u1', load: 20, x: 0.08 },
+            { id: 'E3', kind: 'exchanger', hot: 's2', cold: 's1', load: 90, x: 0.6 },
+            { id: 'E4', kind: 'exchanger', hot: 's4', cold: 's1', load: 30, x: 0.72 },
+            { id: 'C1', kind: 'cooler', hot: 's4', utility: 'u2', load: 60, x: 0.9 },
+          ],
+        },
+      };
+    },
+  },
 ];
