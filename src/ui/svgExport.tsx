@@ -47,14 +47,7 @@ export async function saveSvgPdf(svg: SVGSVGElement, width: number, height: numb
     const [{ jsPDF }, { svg2pdf }] = await Promise.all([import('jspdf'), import('svg2pdf.js')]);
     const doc = new jsPDF({ orientation: width > height ? 'landscape' : 'portrait', unit: 'pt', format: [width, height] });
     await addPdfFonts(doc);
-    clone.setAttribute('font-family', 'LiberationSans');
-    clone.querySelectorAll('[font-family]').forEach((n) => n.setAttribute('font-family', 'LiberationSans'));
-    clone.querySelectorAll('[font-weight]').forEach((n) => {
-      const w = n.getAttribute('font-weight');
-      n.setAttribute('font-weight', w === 'bold' || Number(w) >= 600 ? 'bold' : 'normal');
-    });
-    // only regular and bold faces are embedded
-    clone.querySelectorAll('[font-style]').forEach((n) => n.setAttribute('font-style', 'normal'));
+    pdfFonts(clone);
     await svg2pdf(clone, doc, { x: 0, y: 0, width, height });
     downloadBlob(doc.output('blob'), `${filename}.pdf`);
   } finally {
@@ -62,10 +55,21 @@ export async function saveSvgPdf(svg: SVGSVGElement, width: number, height: numb
   }
 }
 
+/** Map an SVG's fonts to the embedded Liberation Sans faces (regular and bold only). */
+export function pdfFonts(svg: SVGSVGElement): void {
+  svg.setAttribute('font-family', 'LiberationSans');
+  svg.querySelectorAll('[font-family]').forEach((n) => n.setAttribute('font-family', 'LiberationSans'));
+  svg.querySelectorAll('[font-weight]').forEach((n) => {
+    const w = n.getAttribute('font-weight');
+    n.setAttribute('font-weight', w === 'bold' || Number(w) >= 600 ? 'bold' : 'normal');
+  });
+  svg.querySelectorAll('[font-style]').forEach((n) => n.setAttribute('font-style', 'normal'));
+}
+
 // PDF fonts: the built-in PDF fonts have no Greek letters (Δ), so embed Liberation Sans
 // (SIL OFL 1.1, shipped unmodified in public/fonts). Loaded only when a PDF is made.
 let fontCache: Promise<[string, string]> | null = null;
-async function addPdfFonts(doc: import('jspdf').jsPDF): Promise<void> {
+export async function addPdfFonts(doc: import('jspdf').jsPDF): Promise<void> {
   const load = async (file: string) => {
     const buf = new Uint8Array(await (await fetch(`${import.meta.env.BASE_URL}fonts/${file}`)).arrayBuffer());
     let bin = '';

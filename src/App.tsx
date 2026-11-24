@@ -143,6 +143,16 @@ export default function App() {
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
             onSave={() => downloadProject(project)}
+            onReport={async () => {
+              setToast('Preparing the PDF report…');
+              try {
+                const { exportReport } = await import('./ui/report');
+                await exportReport(project, APP_VERSION);
+                setToast('PDF report downloaded.');
+              } catch (e) {
+                setToast(`Could not create the report: ${(e as Error).message}`);
+              }
+            }}
             onShare={async () => {
               const payload = await encodeShare(project, APP_VERSION);
               setShare({ url: shareUrl(payload, window.location.href), length: payload.length });

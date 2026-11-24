@@ -6,11 +6,12 @@ interface Props {
   onFile: () => void;
   onSave: () => void;
   onShare: () => void;
+  onReport: () => void;
   onExample: (ex: Example) => void;
 }
 
 /** Main menu (☰): new project, open a file, save to a file, or open a built-in example. */
-export function AppMenu({ onNew, onFile, onSave, onShare, onExample }: Props) {
+export function AppMenu({ onNew, onFile, onSave, onShare, onReport, onExample }: Props) {
   const [open, setOpen] = useState(false);
   const [sub, setSub] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -55,6 +56,10 @@ export function AppMenu({ onNew, onFile, onSave, onShare, onExample }: Props) {
           <button role="menuitem" className="menu-item" onClick={() => pick(onSave)}>
             <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
             <span className="menu-sub">Download this project as a .pinch file</span>
+          </button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onReport)}>
+            <span className="menu-title">Export as PDF</span>
+            <span className="menu-sub">Full report: data, targets, curves, design and optimization steps</span>
           </button>
           <button role="menuitem" className="menu-item" onClick={() => pick(onShare)}>
             <span className="menu-title">Share link…</span>

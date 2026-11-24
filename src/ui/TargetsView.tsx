@@ -234,23 +234,7 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
           <p className="hint warn">{cost.capitalNote ?? 'Costs cannot be calculated for this range.'}</p>
         ) : (
           <>
-            <Chart
-              title="Total annual cost vs ΔTmin"
-              subtitle={opt ? `Optimum ΔTmin ≈ ${num(opt.dtMin, 1)} K, total ${money(opt.total)}/yr` : undefined}
-              series={[
-                { id: 'tac', label: 'Total annual cost', color: '#2a78d6', points: pts.filter((p) => Number.isFinite(p.total)).map((p) => ({ x: p.dtMin, y: p.total })), width: 2.5 },
-                { id: 'op', label: 'Operating cost', color: '#eb6834', points: pts.map((p) => ({ x: p.dtMin, y: p.operating })) },
-                { id: 'cap', label: 'Annualised capital', color: '#1baf7a', points: pts.filter((p) => Number.isFinite(p.capitalAnnual)).map((p) => ({ x: p.dtMin, y: p.capitalAnnual })) },
-              ]}
-              xLabel="ΔTmin (K)"
-              yLabel="Cost ($/yr)"
-              xFmt={(v) => num(v, 2)}
-              yFmt={(v) => money(v)}
-              refLines={[{ axis: 'x', value: analysis.dtMin, label: `Current ${num(analysis.dtMin)} K` }]}
-              markers={opt ? [{ x: opt.dtMin, y: opt.total, label: 'Optimum', color: '#2a78d6' }] : []}
-              filename={`${safeFileName(project.name)}_supertargeting`}
-              yZero
-            />
+            <SupertargetChart project={project} analysis={analysis} sweep={sweep} />
             {gapNote && <p className="hint warn">{gapNote}</p>}
             {opt && (
               <div className="summary-line">
@@ -265,5 +249,30 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
         )}
       </section>
     </div>
+  );
+}
+
+/** Total annual cost, operating cost and annualised capital against ΔTmin. */
+export function SupertargetChart({ project, analysis, sweep }: { project: Project; analysis: Analysis; sweep: Supertarget }) {
+  const pts = sweep.points;
+  const opt = sweep.optimum;
+  return (
+    <Chart
+      title="Total annual cost vs ΔTmin"
+      subtitle={opt ? `Optimum ΔTmin ≈ ${num(opt.dtMin, 1)} K, total ${money(opt.total)}/yr` : undefined}
+      series={[
+        { id: 'tac', label: 'Total annual cost', color: '#2a78d6', points: pts.filter((p) => Number.isFinite(p.total)).map((p) => ({ x: p.dtMin, y: p.total })), width: 2.5 },
+        { id: 'op', label: 'Operating cost', color: '#eb6834', points: pts.map((p) => ({ x: p.dtMin, y: p.operating })) },
+        { id: 'cap', label: 'Annualised capital', color: '#1baf7a', points: pts.filter((p) => Number.isFinite(p.capitalAnnual)).map((p) => ({ x: p.dtMin, y: p.capitalAnnual })) },
+      ]}
+      xLabel="ΔTmin (K)"
+      yLabel="Cost ($/yr)"
+      xFmt={(v) => num(v, 2)}
+      yFmt={(v) => money(v)}
+      refLines={[{ axis: 'x', value: analysis.dtMin, label: `Current ${num(analysis.dtMin)} K` }]}
+      markers={opt ? [{ x: opt.dtMin, y: opt.total, label: 'Optimum', color: '#2a78d6' }] : []}
+      filename={`${safeFileName(project.name)}_supertargeting`}
+      yZero
+    />
   );
 }

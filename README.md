@@ -35,6 +35,7 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 
 ## In development (Stage 1D — sharing, exports, offline)
 
+- **PDF report:** ☰ → Export as PDF makes one vector PDF with the stream and utility data, energy targets, problem table and cascade (table and diagram), every curve, cost targets and supertargeting, the HEN design (grid diagram, unit table, splits, design against targets) and each optimization step with its grid diagram.
 - **Share links:** ☰ → Share link… packs the whole project into the link (after `#`), so nothing is uploaded. Very large projects are pointed to the `.pinch` file instead.
 - **Offline and install:** a service worker caches the app after the first visit; it can be installed from the browser, and a notice offers to reload when a new version is ready.
 
