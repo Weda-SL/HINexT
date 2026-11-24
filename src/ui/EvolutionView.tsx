@@ -124,10 +124,6 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
         <header className="card-head">
           <div>
             <h2>Optimized diagram {preview ? '(preview)' : history.length > 1 ? `(step ${history.length - 1})` : ''}</h2>
-            <p className="muted">Optimization works on its own copy of the MER design, so the HEN design tab keeps the design as you built it.</p>
-            <p className="muted">
-              Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as its own node, since its share of the flow is fixed)' : ''}. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
-            </p>
           </div>
           {history.length > 0 && (
             <button className="btn" onClick={() => { setPick(null); dispatch({ type: 'evolution/clear' }); }} title="Discard the optimization steps and start again from the MER design on the HEN design tab">
@@ -141,6 +137,9 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
       <div className="two-col">
         <section className="card">
           <h2>Loops ({loops.length})</h2>
+          <p className="muted small">
+            Euler: L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as a node)' : ''}
+          </p>
           {loops.length === 0 ? (
             <p className="muted">No loops. {lc.loops > 0 ? 'Some loops are longer than the search limit.' : ''}</p>
           ) : (
