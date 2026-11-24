@@ -141,7 +141,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     </td>
                     <td><DtCell value={s.dtCont} half={half} name={s.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td className="row-actions">
-                      <button className="icon" title="Duplicate" aria-label={`Duplicate ${s.name}`} onClick={() => dispatch({ type: 'stream/duplicate', id: s.id })}>⧉</button>
                       <button className="icon danger" title="Delete" aria-label={`Delete ${s.name}`} onClick={() => dispatch({ type: 'stream/delete', id: s.id })}>×</button>
                     </td>
                   </tr>
