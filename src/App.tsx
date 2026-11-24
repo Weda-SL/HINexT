@@ -111,15 +111,7 @@ export default function App() {
         </div>
       </div>
       <header className="topbar">
-        <input
-          className="project-name"
-          aria-label="Project name"
-          defaultValue={project.name}
-          key={project.id + project.name}
-          onBlur={(e) => e.target.value !== project.name && dispatch({ type: 'project/rename', name: e.target.value })}
-          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-        />
-        <nav className="toolbar" aria-label="Project">
+        <nav className="toolbar toolbar-left" aria-label="Project">
           <AppMenu
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
@@ -139,7 +131,16 @@ export default function App() {
             onOne={() => send({ type: 'redo' })}
             onMany={(count) => send({ type: 'jump', index: hist.past.length + count })}
           />
-          <span className="sep" />
+        </nav>
+        <input
+          className="project-name"
+          aria-label="Project name"
+          defaultValue={project.name}
+          key={project.id + project.name}
+          onBlur={(e) => e.target.value !== project.name && dispatch({ type: 'project/rename', name: e.target.value })}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        />
+        <nav className="toolbar" aria-label="Settings">
           <select className="btn ghost" aria-label="Temperature unit" value={project.settings.units.temperature} onChange={(e) => dispatch({ type: 'settings/units', units: { temperature: e.target.value as 'C' | 'K' } })}>
             <option value="C">°C</option>
             <option value="K">K</option>

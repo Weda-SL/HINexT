@@ -377,3 +377,5 @@ g:hover > .unit-del { stroke: #6b7280; }
 /* logo on its own line above the project bar */
 .brandbar { display: flex; align-items: center; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .topbar { padding-left: 12px; }
+.toolbar.toolbar-left { margin-left: 0; }
+.topbar { padding-left: 16px; }
