@@ -254,3 +254,47 @@ describe('.pinch file format', () => {
     expect(() => parseFile(text)).toThrow(/newer version/);
   });
 });
+
+describe('utility duty limits', () => {
+  const base = (): Project => ({
+    ...EXAMPLES[0].build(),
+    utilities: [
+      { id: 'hp', name: 'HP', kind: 'hot', tSupply: 180, tTarget: 180, cost: 150 },
+      { id: 'lp', name: 'LP', kind: 'hot', tSupply: 100, tTarget: 100, cost: 80 },
+      { id: 'bfw', name: 'Warm sink', kind: 'cold', tSupply: 65, tTarget: 65, cost: -5 },
+      { id: 'cw', name: 'CW', kind: 'cold', tSupply: 10, tTarget: 20, cost: 10 },
+    ],
+  });
+  const duties = (p: Project) => Object.fromEntries(analyse(p, 10).utilityTargets.map((u) => [u.id, u.duty]));
+
+  it('a capped hot utility passes the rest to the next hotter one', () => {
+    const p = base();
+    p.utilities[1].maxDuty = 10; // LP could take 15
+    const d = duties(p);
+    close(d.lp, 10);
+    close(d.hp, 10);
+    expect(analyse(p, 10).utilityTargets.find((u) => u.id === 'lp')!.limited).toBe(true);
+  });
+
+  it('a capped cold utility passes the rest to the next colder one', () => {
+    const p = base();
+    p.utilities[2].maxDuty = 20; // warm sink could take 37.5
+    const d = duties(p);
+    close(d.bfw, 20, 1e-5);
+    close(d.cw, 40, 1e-5);
+  });
+
+  it('a limit above what the process allows changes nothing', () => {
+    const p = base();
+    p.utilities[1].maxDuty = 100;
+    close(duties(p).lp, 15);
+    expect(analyse(p, 10).utilityTargets.find((u) => u.id === 'lp')!.limited).toBe(false);
+  });
+
+  it('capping the only utility leaves unmet demand', () => {
+    const p = EXAMPLES[0].build();
+    p.utilities[0].maxDuty = 5;
+    const a = analyse(p, 10);
+    close(a.unmetHot, 15);
+  });
+});

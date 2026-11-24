@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { niceTicks } from './format';
-import { downloadBlob, downloadText } from '../state/storage';
+import { DownloadMenu, saveSvgFile, saveSvgPdf, saveSvgPng } from './svgExport';
 
 export interface XY {
   x: number;
@@ -132,31 +132,8 @@ export function Chart({ title, subtitle, series, xLabel, yLabel, xFmt = defaultF
     setHover(best && best.d < 36 ? best : null);
   };
 
-  const exportSvg = () => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    clone.querySelectorAll('[data-hover]').forEach((n) => n.remove());
-    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    return new XMLSerializer().serializeToString(clone);
-  };
-
-  const savePng = (scale = 3) => {
-    const text = exportSvg();
-    if (!text) return;
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = width * scale;
-      c.height = fullH * scale;
-      const ctx = c.getContext('2d')!;
-      ctx.fillStyle = SURFACE;
-      ctx.fillRect(0, 0, c.width, c.height);
-      ctx.drawImage(img, 0, 0, c.width, c.height);
-      c.toBlob((b) => b && downloadBlob(b, `${filename}.png`), 'image/png');
-    };
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text);
-  };
+  const savePng = () => svgRef.current && saveSvgPng(svgRef.current, width, fullH, filename);
+  const savePdf = () => svgRef.current && saveSvgPdf(svgRef.current, width, fullH, filename);
 
   const path = (pts: XY[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`).join('');
 
@@ -258,8 +235,11 @@ export function Chart({ title, subtitle, series, xLabel, yLabel, xFmt = defaultF
         </div>
       )}
       <figcaption className="chart-actions">
-        <button className="btn ghost small" onClick={() => { const t = exportSvg(); if (t) downloadText(t, `${filename}.svg`, 'image/svg+xml'); }}>SVG</button>
-        <button className="btn ghost small" onClick={() => savePng(3)}>PNG</button>
+        <DownloadMenu
+          onSvg={() => svgRef.current && saveSvgFile(svgRef.current, width, fullH, filename)}
+          onPng={savePng}
+          onPdf={savePdf}
+        />
       </figcaption>
     </figure>
   );

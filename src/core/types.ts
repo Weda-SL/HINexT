@@ -8,6 +8,33 @@
 
 export type StreamSpec = 'cp' | 'duty';
 
+/** One segment of a non-linear profile, between two consecutive temperature points. */
+export interface ProfileSegment {
+  /** Which of CP or heat load the user typed for this segment */
+  spec: StreamSpec;
+  /** kW/K. Not used for a phase-change segment (equal temperatures). */
+  cp?: number;
+  /** kW, positive */
+  duty?: number;
+  /** Film coefficient for this segment, kW/(m²·K) */
+  h?: number;
+}
+
+/**
+ * Non-linear temperature–enthalpy profile: temperature points in order, with
+ * one segment between each consecutive pair. Two equal consecutive temperatures
+ * make a phase-change segment (heat load only). The profile may extend beyond
+ * the stream's supply and target temperatures; only the part between them is used.
+ */
+export interface NonLinearProfile {
+  /** Temperature points, °C, in order (rising or falling) */
+  temps: number[];
+  /** segments.length === temps.length − 1 */
+  segments: ProfileSegment[];
+  /** When true, the stream's own h applies to every segment */
+  hConstant: boolean;
+}
+
 export interface Stream {
   /** Permanent ID — never a position or display name. */
   id: string;
@@ -26,6 +53,9 @@ export interface Stream {
   h?: number;
   /** Individual ΔT contribution, K. null/undefined = ΔTmin/2 */
   dtCont?: number | null;
+  /** 'linear' (default) uses cp/duty; 'nonlinear' uses the profile below */
+  profile?: 'linear' | 'nonlinear';
+  profileData?: NonLinearProfile;
 }
 
 export type UtilityKind = 'hot' | 'cold';
@@ -39,6 +69,11 @@ export interface Utility {
   tTarget: number;
   /** Operating cost, $ per kW per year */
   cost: number;
+  /**
+   * Optional upper limit on this utility's duty, kW. The targeting gives it as
+   * much as it can up to this limit; the rest passes to the next utility.
+   */
+  maxDuty?: number | null;
   /** Film coefficient, kW/(m²·K) */
   h?: number;
   /** Individual ΔT contribution, K. null/undefined = ΔTmin/2 */

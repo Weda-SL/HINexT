@@ -1,9 +1,12 @@
-import type { Dispatch } from 'react';
+import { useState, type Dispatch } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { NumberField } from './NumberField';
-import { conv, money, num } from './format';
+import { conv, num } from './format';
+import { ProfileDialog } from './ProfileDialog';
+import { CurvesView } from './CurvesView';
+import { ProblemTableView } from './ProblemTableView';
 
 interface Props {
   project: Project;
@@ -18,6 +21,8 @@ export function DataView({ project, analysis, dispatch }: Props) {
   const targets = new Map(analysis.utilityTargets.map((t) => [t.id, t]));
   const errorRefs = new Set(analysis.issues.filter((i) => i.level === 'error' && i.ref).map((i) => i.ref));
   const half = project.settings.dtMin / 2;
+  const [editing, setEditing] = useState<string | null>(null);
+  const editingStream = project.streams.find((s) => s.id === editing);
 
   return (
     <div className="stack">
@@ -35,7 +40,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Process streams</h2>
-            <p className="muted">Hot or cold is set from the temperatures. Enter either CP or heat load; the other is calculated.</p>
+            <p className="muted">Hot or cold is set from the temperatures. Type either CP or heat load and the other is calculated (shown in grey). If you then change a temperature, the value you typed is kept and the other is recalculated.</p>
           </div>
           <button className="btn primary" onClick={() => dispatch({ type: 'stream/add' })}>+ Add stream</button>
         </header>
@@ -48,7 +53,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 <th>Type</th>
                 <th className="r">T supply<br /><span className="unit">{c.tUnit}</span></th>
                 <th className="r">T target<br /><span className="unit">{c.tUnit}</span></th>
-                <th>Enter</th>
+                <th>Profile</th>
                 <th className="r">CP<br /><span className="unit">{c.cpUnit}</span></th>
                 <th className="r">Heat load<br /><span className="unit">{c.pUnit}</span></th>
                 <th className="r">h<br /><span className="unit">kW/m²K</span></th>
@@ -59,13 +64,14 @@ export function DataView({ project, analysis, dispatch }: Props) {
             <tbody>
               {project.streams.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="empty">No streams yet. Add one, or open an example from the menu.</td>
+                  <td colSpan={11} className="empty">No streams yet. Add one, or choose an example from the Open menu.</td>
                 </tr>
               )}
               {project.streams.map((s, i) => {
                 const r = resolved.get(s.id);
                 const upd = (patch: Partial<typeof s>) => dispatch({ type: 'stream/update', id: s.id, patch });
                 const bad = errorRefs.has(s.id);
+                const nl = s.profile === 'nonlinear';
                 return (
                   <tr key={s.id} className={bad ? 'row-error' : ''}>
                     <td className="muted">{i + 1}</td>
@@ -83,37 +89,58 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     <td><NumberField ariaLabel="Supply temperature" value={c.t(s.tSupply)} onCommit={(v) => upd({ tSupply: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Target temperature" value={c.t(s.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
                     <td>
-                      <select
-                        aria-label="Quantity entered"
-                        value={s.spec}
-                        onChange={(e) => {
-                          const spec = e.target.value as 'cp' | 'duty';
-                          // carry the derived value across so nothing is lost
-                          upd(spec === 'duty' ? { spec, duty: r?.duty ?? s.duty } : { spec, cp: r?.cp ?? s.cp });
-                        }}
-                      >
-                        <option value="cp">CP</option>
-                        <option value="duty">Load</option>
-                      </select>
+                      <div className="profile-cell">
+                        <select
+                          className="profile-select"
+                          aria-label="Temperature–enthalpy profile"
+                          value={nl ? 'nonlinear' : 'linear'}
+                          onChange={(e) => {
+                            if (e.target.value === 'nonlinear') setEditing(s.id);
+                            else dispatch({ type: 'stream/setProfile', id: s.id, profile: 'linear' });
+                          }}
+                        >
+                          <option value="linear">Linear</option>
+                          <option value="nonlinear">Non-linear</option>
+                        </select>
+                        {nl && <button className="btn ghost small" onClick={() => setEditing(s.id)}>Edit…</button>}
+                      </div>
                     </td>
+                    {nl ? (
+                      <>
+                        <td><span className="derived" title="CP changes along this stream; edit it in the profile">varies</span></td>
+                        <td><span className="derived">{num(r ? c.p(r.duty) : NaN)}</span></td>
+                      </>
+                    ) : (
+                      <>
+                        <td>
+                      <NumberField
+                        ariaLabel="CP"
+                        className={s.spec === 'cp' ? '' : 'calc'}
+                        value={c.p(s.spec === 'cp' ? (s.cp ?? NaN) : (r?.cp ?? NaN))}
+                        dp={4}
+                        onCommit={(v) => upd({ spec: 'cp', cp: c.pIn(v) })}
+                      />
+                    </td>
+                        <td>
+                      <NumberField
+                        ariaLabel="Heat load"
+                        className={s.spec === 'duty' ? '' : 'calc'}
+                        value={c.p(s.spec === 'duty' ? (s.duty ?? NaN) : (r?.duty ?? NaN))}
+                        dp={3}
+                        onCommit={(v) => upd({ spec: 'duty', duty: c.pIn(v) })}
+                      />
+                    </td>
+                      </>
+                    )}
                     <td>
-                      {s.spec === 'cp' ? (
-                        <NumberField ariaLabel="CP" value={c.p(s.cp ?? NaN)} onCommit={(v) => upd({ cp: c.pIn(v) })} />
+                      {nl && !s.profileData?.hConstant ? (
+                        <span className="derived" title="Set per segment in the profile">per segment</span>
                       ) : (
-                        <span className="derived">{num(r ? c.p(r.cp) : NaN, 4)}</span>
+                        <NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" />
                       )}
                     </td>
-                    <td>
-                      {s.spec === 'duty' ? (
-                        <NumberField ariaLabel="Heat load" value={c.p(s.duty ?? NaN)} onCommit={(v) => upd({ duty: c.pIn(v) })} />
-                      ) : (
-                        <span className="derived">{num(r ? c.p(r.duty) : NaN)}</span>
-                      )}
-                    </td>
-                    <td><NumberField ariaLabel="Film coefficient" value={s.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
-                    <td><NumberField ariaLabel="ΔT contribution" value={s.dtCont ?? undefined} onCommit={(v) => upd({ dtCont: Number.isNaN(v) ? null : v })} placeholder={num(half)} /></td>
+                    <td><DtCell value={s.dtCont} half={half} name={s.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td className="row-actions">
-                      <button className="icon" title="Duplicate" aria-label={`Duplicate ${s.name}`} onClick={() => dispatch({ type: 'stream/duplicate', id: s.id })}>⧉</button>
                       <button className="icon danger" title="Delete" aria-label={`Delete ${s.name}`} onClick={() => dispatch({ type: 'stream/delete', id: s.id })}>×</button>
                     </td>
                   </tr>
@@ -122,14 +149,19 @@ export function DataView({ project, analysis, dispatch }: Props) {
             </tbody>
           </table>
         </div>
-        <p className="hint">Blank ΔT contribution uses ΔTmin/2 ({num(half)} K). Film coefficients are only needed for area and capital targets.</p>
+        <p className="hint">ΔT contribution: grey values are the default, ΔTmin/2 ({num(half)} K). Type a value to override it for one stream (e.g. a larger value for a gas or a fouling stream, a smaller one for a boiling or condensing stream); ↺ restores the default. Film coefficients are only needed for area and capital targets.</p>
       </section>
+
+      {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="composites" />}
+      {analysis.streams.length > 0 && <ProblemTableView project={project} analysis={analysis} part="table" />}
+      {analysis.streams.length > 0 && <ProblemTableView project={project} analysis={analysis} part="cascade" />}
+      {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="gcc" />}
 
       <section className="card">
         <header className="card-head">
           <div>
             <h2>Utilities</h2>
-            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first.</p>
+            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first. Type a duty to limit a utility; the rest of the demand passes to the next hotter (or colder) utility.</p>
           </div>
           <div className="btn-row">
             <button className="btn" onClick={() => dispatch({ type: 'utility/add', kind: 'hot' })}>+ Hot utility</button>
@@ -144,17 +176,15 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 <th>Type</th>
                 <th className="r">T supply<br /><span className="unit">{c.tUnit}</span></th>
                 <th className="r">T target<br /><span className="unit">{c.tUnit}</span></th>
-                <th className="r">Cost<br /><span className="unit">$/kW·yr</span></th>
                 <th className="r">h<br /><span className="unit">kW/m²K</span></th>
                 <th className="r">ΔT contrib.<br /><span className="unit">K</span></th>
-                <th className="r">Target duty<br /><span className="unit">{c.pUnit}</span></th>
-                <th className="r">Cost<br /><span className="unit">$/yr</span></th>
+                <th className="r">Duty<br /><span className="unit">{c.pUnit}</span></th>
                 <th aria-label="Row actions" />
               </tr>
             </thead>
             <tbody>
               {project.utilities.length === 0 && (
-                <tr><td colSpan={10} className="empty">No utilities. Energy targets still work; costs need utilities.</td></tr>
+                <tr><td colSpan={8} className="empty">No utilities. Energy targets still work without them.</td></tr>
               )}
               {project.utilities.map((u) => {
                 const upd = (patch: Partial<typeof u>) => dispatch({ type: 'utility/update', id: u.id, patch });
@@ -175,11 +205,22 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     </td>
                     <td><NumberField ariaLabel="Supply temperature" value={c.t(u.tSupply)} onCommit={(v) => upd({ tSupply: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Target temperature" value={c.t(u.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
-                    <td><NumberField ariaLabel="Cost" value={u.cost} onCommit={(v) => upd({ cost: v })} /></td>
                     <td><NumberField ariaLabel="Film coefficient" value={u.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
-                    <td><NumberField ariaLabel="ΔT contribution" value={u.dtCont ?? undefined} onCommit={(v) => upd({ dtCont: Number.isNaN(v) ? null : v })} placeholder={num(half)} /></td>
-                    <td className="r strong">{ok ? num(c.p(t?.duty ?? 0)) : '—'}</td>
-                    <td className="r">{ok ? money(t?.opCost ?? 0) : '—'}</td>
+                    <td><DtCell value={u.dtCont} half={half} name={u.name} onChange={(dtCont) => upd({ dtCont })} /></td>
+                    <td>
+                      {ok ? (
+                        <DutyCell
+                          duty={c.p(t?.duty ?? 0)}
+                          limit={typeof u.maxDuty === 'number' && Number.isFinite(u.maxDuty) ? c.p(u.maxDuty) : undefined}
+                          limited={!!t?.limited}
+                          name={u.name}
+                          unit={c.pUnit}
+                          onChange={(v) => upd({ maxDuty: v === null ? null : c.pIn(v) })}
+                        />
+                      ) : (
+                        <span className="derived">—</span>
+                      )}
+                    </td>
                     <td className="row-actions">
                       <button className="icon danger" title="Delete" aria-label={`Delete ${u.name}`} onClick={() => dispatch({ type: 'utility/delete', id: u.id })}>×</button>
                     </td>
@@ -190,6 +231,59 @@ export function DataView({ project, analysis, dispatch }: Props) {
           </table>
         </div>
       </section>
+
+      {editingStream && (
+        <ProfileDialog
+          stream={editingStream}
+          units={project.settings.units}
+          dtMin={project.settings.dtMin}
+          onCancel={() => setEditing(null)}
+          onApply={(data, h) => {
+            dispatch({ type: 'stream/setProfile', id: editingStream.id, profile: 'nonlinear', data, h: h ?? NaN });
+            setEditing(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** ΔT contribution cell: shows the default (ΔTmin/2) until the user overrides it. */
+function DtCell({ value, half, name, onChange }: { value: number | null | undefined; half: number; name: string; onChange: (v: number | null) => void }) {
+  const overridden = typeof value === 'number' && Number.isFinite(value);
+  return (
+    <div className={`dtc ${overridden ? 'set' : ''}`}>
+      <NumberField
+        ariaLabel={`ΔT contribution of ${name}${overridden ? '' : ' (default)'}`}
+        value={overridden ? value : undefined}
+        placeholder={num(half)}
+        onCommit={(v) => onChange(Number.isNaN(v) || v < 0 ? null : v)}
+      />
+      {overridden ? (
+        <button className="icon reset" title={`Reset to default (${num(half)} K)`} aria-label={`Reset ΔT contribution of ${name} to default`} onClick={() => onChange(null)}>↺</button>
+      ) : (
+        <span className="reset-space" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
+/** Utility duty: shows the targeted duty; typing a value sets a limit, ↺ removes it. */
+function DutyCell({ duty, limit, limited, name, unit, onChange }: { duty: number; limit?: number; limited: boolean; name: string; unit: string; onChange: (v: number | null) => void }) {
+  const set = limit !== undefined;
+  return (
+    <div className={`dtc duty ${set ? 'set' : ''}`} title={set && !limited ? `Limit ${num(limit)} ${unit} is more than the process can use here` : undefined}>
+      <NumberField
+        ariaLabel={`Duty of ${name}${set ? ' (limited)' : ''}`}
+        value={duty}
+        dp={3}
+        onCommit={(v) => onChange(Number.isNaN(v) || v < 0 ? null : v)}
+      />
+      {set ? (
+        <button className="icon reset" title="Remove the limit (use as much as possible)" aria-label={`Remove duty limit of ${name}`} onClick={() => onChange(null)}>↺</button>
+      ) : (
+        <span className="reset-space" aria-hidden="true" />
+      )}
     </div>
   );
 }

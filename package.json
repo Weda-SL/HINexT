@@ -13,8 +13,10 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "jspdf": "^4.2.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "svg2pdf.js": "^2.9.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
@@ -26,6 +28,6 @@
     "vite": "^8.3.6",
     "vitest": "^5.1.1"
   },
-  "description": "HINexT \u2014 free, open-source, browser-based pinch analysis",
+  "description": "HINexT — free, open-source, browser-based pinch analysis",
   "license": "MIT"
 }

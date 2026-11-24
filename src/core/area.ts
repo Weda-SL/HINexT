@@ -77,8 +77,8 @@ export interface AreaTarget {
   coldCurve: Point[];
 }
 
-function memberFromStream(s: ResolvedStream): Member {
-  return { id: s.id, isUtility: false, h: s.h, lo: Math.min(s.ts, s.tt), hi: Math.max(s.ts, s.tt), cp: s.cp, q: s.duty, isothermal: false };
+function membersFromStream(s: ResolvedStream): Member[] {
+  return s.pieces.map((p) => ({ id: s.id, isUtility: false, h: p.h, lo: p.lo, hi: p.hi, cp: p.cp, q: p.q, isothermal: p.iso }));
 }
 
 function memberFromUtility(u: ResolvedUtility, duty: number): Member {
@@ -113,8 +113,8 @@ export function areaTarget(
   targets: UtilityTarget[],
 ): AreaTarget {
   const duty = new Map(targets.map((t) => [t.id, t.duty]));
-  const hotMembers: Member[] = streams.filter((s) => s.kind === 'hot').map(memberFromStream);
-  const coldMembers: Member[] = streams.filter((s) => s.kind === 'cold').map(memberFromStream);
+  const hotMembers: Member[] = streams.filter((s) => s.kind === 'hot').flatMap(membersFromStream);
+  const coldMembers: Member[] = streams.filter((s) => s.kind === 'cold').flatMap(membersFromStream);
   for (const u of utilities) {
     const q = duty.get(u.id) ?? 0;
     if (q <= 0) continue;
@@ -127,7 +127,7 @@ export function areaTarget(
     exchanger: 0,
     heater: 0,
     cooler: 0,
-    missingH: [...hotMembers, ...coldMembers].filter((m) => m.h === undefined).map((m) => m.id),
+    missingH: [...new Set([...hotMembers, ...coldMembers].filter((m) => m.h === undefined).map((m) => m.id))],
     infeasible: false,
     hotCurve: curvePoints(hotSegs),
     coldCurve: curvePoints(coldSegs),
