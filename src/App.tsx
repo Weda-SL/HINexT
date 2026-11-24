@@ -15,6 +15,7 @@ import { analyseNetwork } from './core/network';
 import { HistoryButton } from './ui/HistoryButton';
 import { ShareDialog } from './ui/ShareDialog';
 import { decodeShare, encodeShare, sharePayload, shareUrl } from './state/share';
+import { startPwa } from './pwa';
 
 type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
@@ -32,6 +33,15 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('data');
   const [toast, setToast] = useState<string | null>(null);
   const [share, setShare] = useState<{ url: string; length: number } | null>(null);
+  const [update, setUpdate] = useState<(() => void) | null>(null);
+
+  // Offline support: a notice when a new version is ready (it is used after a reload, never mid-edit).
+  useEffect(() => {
+    startPwa({
+      onNeedRefresh: (apply) => setUpdate(() => apply),
+      onOfflineReady: () => setToast('HINexT is ready to work offline.'),
+    });
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const project = hist.present.project;
   const dispatch = useCallback((action: Action) => send({ type: 'do', action }), []);
@@ -198,6 +208,13 @@ export default function App() {
         HINexT {APP_VERSION} | MIT licence | © Weda 2026
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
+      {update && (
+        <div className="update-bar" role="status">
+          A new version of HINexT is available. Your project is saved in this browser.
+          <button className="btn small primary" onClick={() => update()}>Reload now</button>
+          <button className="btn small ghost" onClick={() => setUpdate(null)}>Later</button>
+        </div>
+      )}
       {share && <ShareDialog url={share.url} payloadLength={share.length} onSaveFile={() => { downloadProject(project); setShare(null); }} onClose={() => setShare(null)} />}
     </div>
   );

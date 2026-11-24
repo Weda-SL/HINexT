@@ -385,3 +385,4 @@ g:hover > .unit-del { stroke: #6b7280; }
 .share-modal h2 { margin: 0; font-size: 16px; }
 .share-row { display: flex; gap: 8px; }
 .share-url { flex: 1; min-width: 0; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; background: #fafaf8; }
+.update-bar { position: fixed; bottom: 20px; right: 20px; z-index: 25; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12); padding: 10px 12px 10px 16px; font-size: 13px; }
