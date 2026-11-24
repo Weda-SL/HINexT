@@ -21,8 +21,8 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
   const rowH = 74;
   const top = 64;
   const H = top + (n - 1) * rowH + 70;
-  const W = 640;
-  const colX = [250, 500]; // centres of the two cascades
+  const W = 820;
+  const colX = [250, 620]; // centres of the two cascades
   const tempX = 18;
   const boxW = 112;
   const boxH = 30;
