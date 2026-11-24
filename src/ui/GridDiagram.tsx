@@ -357,8 +357,9 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 const lo = Math.max(a, !hasPinch || reg === 'above' ? 0 : PINCH_X);
                 const hi = Math.min(b, !hasPinch || reg === 'below' ? 1 : PINCH_X);
                 if (hi - lo < 1e-6) return null;
-                const xa = px(lo) + (lo === a ? 14 : 4);
-                const xb = px(hi) - (hi === b ? 14 : 4);
+                // rejoin well before the arrow head (hot streams end on the right, cold on the left)
+                const xa = px(lo) + (lo === a ? (s.kind === 'cold' ? 36 : 14) : 4);
+                const xb = px(hi) - (hi === b ? (s.kind === 'hot' ? 36 : 14) : 4);
                 return (
                   <g key={reg}>
                     {fr.map((_f, k) => {
