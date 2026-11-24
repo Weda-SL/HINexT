@@ -262,7 +262,6 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
         <header className="card-head">
           <div>
             <h2>Trade-off history</h2>
-            <p className="muted">One row per evolution step, starting from the MER design. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
           </div>
         </header>
         {history.length === 0 ? (
