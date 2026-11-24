@@ -373,3 +373,7 @@ g:hover > .unit-del { stroke: #6b7280; }
 .unit-panel { position: relative; }
 .panel-close { position: absolute; top: 8px; right: 0; border: 0; background: none; font-size: 20px; line-height: 1; color: #b8bcc4; cursor: pointer; padding: 2px 6px; }
 .panel-close:hover { color: #6b7280; }
+
+/* logo on its own line above the project bar */
+.brandbar { display: flex; align-items: center; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.topbar { padding-left: 12px; }

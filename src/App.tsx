@@ -105,10 +105,12 @@ export default function App() {
         if (f) openFile(f);
       }}
     >
-      <header className="topbar">
+      <div className="brandbar">
         <div className="brand" title="HINexT — the next HINT">
           <span className="b">HIN</span><span className="l">ex</span><span className="b">T</span>
         </div>
+      </div>
+      <header className="topbar">
         <input
           className="project-name"
           aria-label="Project name"
