@@ -196,9 +196,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                       </select>
                     </label>
                   )}
-                  <button className="btn ghost small danger-text" onClick={() => { dispatch({ type: 'unit/delete', id: sel.id }); setSelected(null); }}>
-                    Delete
-                  </button>
                 </div>
                 <dl className="kv">
                   <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}</dd>
