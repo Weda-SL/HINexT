@@ -354,3 +354,6 @@ g:hover > .unit-del { stroke: #6b7280; }
 .guide-summary .hint { margin: 6px 0 0; }
 .compare-card.short { background: #fdecec; border-color: #f2b8b5; }
 .compare-card.short .cc-v { color: #b42318; }
+.guide-col.done { background: #eaf6ee; border-color: #a6d8b5; }
+.guide-col.done h3::before { background: #1a7f37; }
+.guide-col.done .hint { color: #1a7f37; font-weight: 600; }

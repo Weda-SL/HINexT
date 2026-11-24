@@ -29,13 +29,13 @@ export function GuidePanel({ project, analysis, net, onAdd, section, summary }: 
     const title = guide.pinch ? (above ? 'Above the pinch' : 'Below the pinch') : 'Whole problem (no pinch)';
     const pinchPhase = r.pinchHot.length > 0 && r.pinchCold.length > 0;
     let status: string;
-    if (r.remainingHot <= 1e-6 && r.remainingCold <= 1e-6) status = 'Complete.';
+    if (r.remainingHot <= 1e-6 && r.remainingCold <= 1e-6) status = '✓ Complete: every stream on this side is satisfied.';
     else if (above && r.remainingHot <= 1e-6) status = `All hot heat is used. The remaining ${num(c.p(r.remainingCold))} ${c.pUnit} on cold streams is for heaters.`;
     else if (!above && r.remainingCold <= 1e-6) status = `All cold demand is met. The remaining ${num(c.p(r.remainingHot))} ${c.pUnit} on hot streams is for coolers.`;
     else if (pinchPhase) status = 'Start at the pinch: these matches touch the pinch on both streams.';
     else status = 'Pinch matches done. Away from the pinch the choice is free, as long as ΔT ≥ ΔTmin.';
     return (
-      <div className={`guide-col ${section && section !== r.region ? 'muted-col' : ''}`} key={r.region}>
+      <div className={`guide-col ${section && section !== r.region ? 'muted-col' : ''} ${r.remainingHot <= 1e-6 && r.remainingCold <= 1e-6 ? 'done' : ''}`} key={r.region}>
         <h3>{title}</h3>
         <p className="hint">{status}</p>
         {guide.pinch && net.pinchCounts && (() => {
