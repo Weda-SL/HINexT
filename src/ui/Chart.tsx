@@ -158,6 +158,29 @@ export function Chart({ title, subtitle, series, xLabel, yLabel, xFmt = defaultF
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(text);
   };
 
+  const savePdf = async () => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement;
+    clone.querySelectorAll('[data-hover]').forEach((n) => n.remove());
+    // svg2pdf needs the element in the document to resolve styles
+    clone.style.position = 'absolute';
+    clone.style.left = '-10000px';
+    document.body.appendChild(clone);
+    try {
+      const [{ jsPDF }, { svg2pdf }] = await Promise.all([import('jspdf'), import('svg2pdf.js')]);
+      const doc = new jsPDF({ orientation: width > fullH ? 'landscape' : 'portrait', unit: 'pt', format: [width, fullH] });
+      await addPdfFonts(doc);
+      clone.setAttribute('font-family', 'LiberationSans');
+      clone.querySelectorAll('[font-family]').forEach((n) => n.setAttribute('font-family', 'LiberationSans'));
+      clone.querySelectorAll('[font-weight]').forEach((n) => n.setAttribute('font-weight', Number(n.getAttribute('font-weight')) >= 600 ? 'bold' : 'normal'));
+      await svg2pdf(clone, doc, { x: 0, y: 0, width, height: fullH });
+      downloadBlob(doc.output('blob'), `${filename}.pdf`);
+    } finally {
+      clone.remove();
+    }
+  };
+
   const path = (pts: XY[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`).join('');
 
   return (
@@ -258,9 +281,64 @@ export function Chart({ title, subtitle, series, xLabel, yLabel, xFmt = defaultF
         </div>
       )}
       <figcaption className="chart-actions">
-        <button className="btn ghost small" onClick={() => { const t = exportSvg(); if (t) downloadText(t, `${filename}.svg`, 'image/svg+xml'); }}>SVG</button>
-        <button className="btn ghost small" onClick={() => savePng(3)}>PNG</button>
+        <DownloadMenu
+          onSvg={() => { const t = exportSvg(); if (t) downloadText(t, `${filename}.svg`, 'image/svg+xml'); }}
+          onPng={() => savePng(3)}
+          onPdf={savePdf}
+        />
       </figcaption>
     </figure>
+  );
+}
+
+// PDF fonts: the built-in PDF fonts have no Greek letters (Δ), so embed Liberation Sans
+// (SIL OFL 1.1, shipped unmodified in public/fonts). Loaded only when a PDF is made.
+let fontCache: Promise<[string, string]> | null = null;
+async function addPdfFonts(doc: import('jspdf').jsPDF): Promise<void> {
+  const load = async (file: string) => {
+    const buf = new Uint8Array(await (await fetch(`${import.meta.env.BASE_URL}fonts/${file}`)).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  fontCache ??= Promise.all([load('LiberationSans-Regular.ttf'), load('LiberationSans-Bold.ttf')]);
+  const [regular, bold] = await fontCache;
+  doc.addFileToVFS('LiberationSans-Regular.ttf', regular);
+  doc.addFileToVFS('LiberationSans-Bold.ttf', bold);
+  doc.addFont('LiberationSans-Regular.ttf', 'LiberationSans', 'normal');
+  doc.addFont('LiberationSans-Bold.ttf', 'LiberationSans', 'bold');
+}
+
+function DownloadMenu({ onSvg, onPng, onPdf }: { onSvg: () => void; onPng: () => void; onPdf: () => void }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => root.current && !root.current.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('pointerdown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+  const pick = (fn: () => void) => {
+    setOpen(false);
+    fn();
+  };
+  return (
+    <div className="menu-root" ref={root}>
+      <button className="btn ghost small dl-btn" aria-haspopup="menu" aria-expanded={open} aria-label="Download chart" title="Download" onClick={() => setOpen((o) => !o)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M3 13h10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      {open && (
+        <div className="menu dl-menu" role="menu">
+          <button role="menuitem" className="menu-item" onClick={() => pick(onPdf)}><span className="menu-title">PDF</span><span className="menu-sub">Vector, for reports</span></button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onSvg)}><span className="menu-title">SVG</span><span className="menu-sub">Vector, editable</span></button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onPng)}><span className="menu-title">PNG</span><span className="menu-sub">Image, 3× resolution</span></button>
+        </div>
+      )}
+    </div>
   );
 }
