@@ -264,7 +264,6 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
             <h2>Trade-off history</h2>
             <p className="muted">One row per evolution step, starting from the MER design. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
           </div>
-          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Restart from MER design</button>}
         </header>
         {history.length === 0 ? (
           <p className="muted">Apply a step to start the history; the current network is saved as the starting point.</p>
