@@ -13,7 +13,7 @@ export const COLORS = {
   coldUtil: ['#1baf7a', '#008300', '#6250d6'],
 };
 
-export function CurvesView({ project, analysis }: { project: Project; analysis: Analysis }) {
+export function CurvesView({ project, analysis, which = 'gcc' }: { project: Project; analysis: Analysis; which?: 'composites' | 'gcc' }) {
   const c = conv(project.settings.units);
   const { pt, dtMin } = analysis;
   const base = safeFileName(project.name);
@@ -61,14 +61,21 @@ export function CurvesView({ project, analysis }: { project: Project; analysis: 
   ];
   const showBalanced = analysis.area.hotCurve.length > 0 && analysis.area.coldCurve.length > 0 && analysis.utilityTargets.some((u) => u.duty > 0);
 
+  if (which === 'composites') {
+    return (
+      <div className="chart-grid">
+        <section className="card">
+          <Chart title="Composite curves" subtitle={energy} series={comp} xLabel={xLabel} yLabel={yAct} xFmt={hFmt} yFmt={tFmt} refLines={pinchActual} filename={`${base}_composite_curves`} xZero />
+        </section>
+        <section className="card">
+          <Chart title="Shifted composite curves" subtitle="The shifted curves touch at the pinch" series={shifted} xLabel={xLabel} yLabel={ySh} xFmt={hFmt} yFmt={tFmt} refLines={pinchShifted} filename={`${base}_shifted_composites`} xZero />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="chart-grid">
-      <section className="card">
-        <Chart title="Composite curves" subtitle={energy} series={comp} xLabel={xLabel} yLabel={yAct} xFmt={hFmt} yFmt={tFmt} refLines={pinchActual} filename={`${base}_composite_curves`} xZero />
-      </section>
-      <section className="card">
-        <Chart title="Shifted composite curves" subtitle="The shifted curves touch at the pinch" series={shifted} xLabel={xLabel} yLabel={ySh} xFmt={hFmt} yFmt={tFmt} refLines={pinchShifted} filename={`${base}_shifted_composites`} xZero />
-      </section>
       <section className="card">
         <Chart
           title="Grand composite curve"
