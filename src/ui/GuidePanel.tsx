@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { NetworkResult } from '../core/network';
@@ -10,11 +10,13 @@ interface Props {
   analysis: Analysis;
   net: NetworkResult;
   onAdd: (s: Suggestion) => void;
+  /** Design vs targets summary shown at the top */
+  summary?: ReactNode;
   /** Side being worked on; the other column is muted */
   section?: 'above' | 'below' | null;
 }
 
-export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
+export function GuidePanel({ project, analysis, net, onAdd, section, summary }: Props) {
   const c = conv(project.settings.units);
   const guide = useMemo(() => designGuide(project, analysis, net), [project, analysis, net]);
   const [showAll, setShowAll] = useState(false);
@@ -86,6 +88,7 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
 
   return (
     <section className="card guide-card" data-keep-section aria-label="Design guide">
+      {summary && <div className="guide-summary">{summary}</div>}
       <div className="guide-grid">{guide.regions.map(region)}</div>
       <div className="guide-help">
       <details className="guide-rules">

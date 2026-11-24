@@ -349,3 +349,6 @@ g:hover > .unit-del { stroke: #6b7280; }
 .cc-v { font-size: 17px; font-weight: 650; color: var(--ink); }
 .cc-v.warn { color: #9a6700; }
 .cc-t { font-size: 13px; color: var(--ink-2); }
+.guide-summary { margin-bottom: 14px; }
+.guide-summary .compare-cards { margin-top: 0; }
+.guide-summary .hint { margin: 6px 0 0; }
