@@ -4,7 +4,6 @@ import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
-import { HeadlineTargets } from './HeadlineTargets';
 import { ProfileDialog } from './ProfileDialog';
 import { CurvesView } from './CurvesView';
 import { ProblemTableView } from './ProblemTableView';
@@ -237,7 +236,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
           }}
         />
       )}
-      <HeadlineTargets project={project} analysis={analysis} />
     </div>
   );
 }
