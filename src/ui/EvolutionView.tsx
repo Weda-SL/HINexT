@@ -123,7 +123,7 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
       <section className="card">
         <header className="card-head">
           <div>
-            <h2>Network {preview ? '(preview)' : history.length > 1 ? `(step ${history.length - 1})` : ''}</h2>
+            <h2>Optimized diagram {preview ? '(preview)' : history.length > 1 ? `(step ${history.length - 1})` : ''}</h2>
             <p className="muted">Optimization works on its own copy of the MER design, so the HEN design tab keeps the design as you built it.</p>
             <p className="muted">
               Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as its own node, since its share of the flow is fixed)' : ''}. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
