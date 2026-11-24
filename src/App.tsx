@@ -17,7 +17,7 @@ import { HistoryButton } from './ui/HistoryButton';
 type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'data', label: 'Energy targets' },
-  { id: 'targets', label: 'Targets & costs' },
+  { id: 'targets', label: 'Cost targets' },
   { id: 'design', label: 'MER design' },
   { id: 'evolution', label: 'Evolution' },
 ];
