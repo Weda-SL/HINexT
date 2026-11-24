@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState, type Dispatch } from 'react';
-import type { NetUnit, Project } from '../core/types';
+import type { NetUnit, Network, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { analyseNetwork, unitName, unitTags, type NetworkResult } from '../core/network';
-import { applyShift, breakLoop, findLoops, findPaths, loopCount, maxShift, solveShift, type Loop, type UtilityPath } from '../core/evolution';
+import { applyShift, breakLoop, endsFor, findLoops, findPaths, loopCount, maxShift, solveShift, type Loop, type UtilityPath } from '../core/evolution';
 import { GridDiagram } from './GridDiagram';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
@@ -12,29 +12,40 @@ interface Props {
   project: Project;
   analysis: Analysis;
   net: NetworkResult;
+  /** The MER design on the HEN design tab, to notice when it has changed since evolution started */
+  design?: Network;
   dispatch: Dispatch<Action>;
 }
 
 type Pick = { kind: 'loop' | 'path'; index: number } | null;
 
 const LOOP_COLOR = '#4b3cc0';
+/** Heat across the pinch is expected after evolution (it is what the extra utility pays for), so it is not flagged on this grid. */
+const PINCH_NOTE = /across the pinch|below the pinch|above the pinch/;
 const PATH_COLOR = '#eb6834';
 
-export function EvolutionView({ project, analysis, net, dispatch }: Props) {
+export function EvolutionView({ project, design, analysis, net, dispatch }: Props) {
   const c = conv(project.settings.units);
   const units = useMemo(() => project.network?.units ?? [], [project.network]);
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
   const tags = unitTags(project.network?.units ?? []);
-  const nodeName = (id: string) => streams.get(id)?.name ?? utils.get(id)?.name ?? id;
+  const nodeName = (id: string) => {
+    const [sid, b] = id.split('#');
+    const n = streams.get(sid)?.name ?? utils.get(sid)?.name ?? sid;
+    return b ? `${n} (branch ${b})` : n;
+  };
+  const ends = useMemo(() => endsFor(project, analysis.pt.pinches.length > 0), [project, analysis]);
+  /** Short unit tag as on the grid: E1, H1, C1 */
+  const tagOf = (id: string) => tags.get(id) ?? id;
   const unitLabel = (id: string) => {
     const u = units.find((v) => v.id === id);
     return u ? unitName(u, streams, utils, tags) : id;
   };
 
-  const lc = loopCount(units);
-  const loops = useMemo(() => findLoops(units), [units]);
-  const paths = useMemo(() => findPaths(units, project), [units, project]);
+  const lc = loopCount(units, ends);
+  const loops = useMemo(() => findLoops(units, ends), [units, ends]);
+  const paths = useMemo(() => findPaths(units, project, ends), [units, project, ends]);
   const [pick, setPick] = useState<Pick>(null);
   const [x, setX] = useState(0);
   const [solveFor, setSolveFor] = useState<string>('');
@@ -61,15 +72,15 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
 
   const preview: NetUnit[] | null = item && signs ? applyShift(units, signs, x) : null;
   const previewNet = useMemo(
-    () => (preview ? analyseNetwork({ ...project, network: { units: preview } }, analysis) : null),
+    () => (preview ? analyseNetwork({ ...project, network: { ...project.network, units: preview } }, analysis) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(preview), project, analysis],
   );
   const shown = previewNet ?? net;
-  const shownProject = preview ? { ...project, network: { units: preview } } : project;
+  const shownProject = preview ? { ...project, network: { ...project.network, units: preview } } : project;
   const xMax = item && signs ? maxShift(units, signs) : 0;
 
-  const highlight = item && signs ? { units: new Map([...signs].filter(([id]) => preview?.some((u) => u.id === id) ?? true)), color: item.kind === 'loop' ? LOOP_COLOR : PATH_COLOR } : undefined;
+  const highlight = item && signs ? { units: new Map([...signs].filter(([id]) => preview?.some((u) => u.id === id) ?? true)), color: item.kind === 'loop' ? LOOP_COLOR : PATH_COLOR, marks: !(x > 0) } : undefined;
 
   const minDt = (n: NetworkResult) => Math.min(...n.units.filter((r) => r.load > 0).map((r) => Math.min(r.dtHot, r.dtCold)));
 
@@ -87,7 +98,7 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   const historyRows = useMemo(
     () =>
       history.map((h) => {
-        const n = analyseNetwork({ ...project, network: { units: h.units } }, analysis);
+        const n = analyseNetwork({ ...project, network: { ...project.network, units: h.units } }, analysis);
         return { h, n };
       }),
     [history, project, analysis],
@@ -96,26 +107,31 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   if (!units.length) {
     return <section className="card empty-card">Design a network on the HEN design tab first. Evolution then simplifies it by breaking loops and relaxing along utility paths.</section>;
   }
-  if (project.network?.splits?.length) {
-    return (
-      <section className="card empty-card">
-        This network has split streams. Evolution (loops, utility paths and relaxing) does not handle splits yet; remove the splits on the HEN design tab to evolve the network.
-      </section>
-    );
-  }
+
+  const designChanged =
+    history.length > 0 && (JSON.stringify(history[0].units) !== JSON.stringify(design?.units ?? []) || JSON.stringify(project.network?.splits ?? []) !== JSON.stringify(design?.splits ?? []));
 
   return (
     <div className="stack">
+      {designChanged && (
+        <div className="confirm-bar" role="status">
+          <span className="confirm-icon">⚠</span>
+          <span className="confirm-msg">The MER design on the HEN design tab has changed since you started optimizing. These steps still work on the earlier design.</span>
+          <button className="btn small primary" onClick={() => dispatch({ type: 'evolution/clear' })}>Start again from the new design</button>
+        </div>
+      )}
       <section className="card">
         <header className="card-head">
           <div>
-            <h2>Network {preview ? '(preview)' : ''}</h2>
-            <p className="muted">
-              Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
-            </p>
+            <h2>Optimized diagram {preview ? '(preview)' : history.length > 1 ? `(step ${history.length - 1})` : ''}</h2>
           </div>
+          {history.length > 0 && (
+            <button className="btn" onClick={() => { setPick(null); dispatch({ type: 'evolution/clear' }); }} title="Discard the optimization steps and start again from the MER design on the HEN design tab">
+              Restart from MER design
+            </button>
+          )}
         </header>
-        <GridDiagram project={shownProject} analysis={analysis} net={shown} selected={selected} onSelect={setSelected} highlight={highlight} />
+        <GridDiagram project={shownProject} analysis={analysis} net={shown} selected={selected} onSelect={setSelected} highlight={highlight} issueFilter={(m) => !PINCH_NOTE.test(m)} />
       </section>
 
       <div className="two-col">
@@ -127,8 +143,8 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
             <div className="pick-list">
               {loops.map((l, i) => (
                 <button key={i} className={`pick ${pick?.kind === 'loop' && pick.index === i ? 'on loop' : ''}`} onClick={() => setPick(pick?.kind === 'loop' && pick.index === i ? null : { kind: 'loop', index: i })}>
-                  <span className="pick-title">L{i + 1}: {l.nodes.map(nodeName).join(' – ')}</span>
-                  <span className="pick-sub">{l.edges.length} units: {l.edges.map(unitLabel).join(', ')}</span>
+                  <span className="pick-title">L{i + 1}: {l.edges.map(tagOf).join(' – ')}</span>
+                  <span className="pick-sub">{l.edges.length} units, through {[...new Set(l.nodes.slice(0, -1))].map(nodeName).join(', ')}</span>
                 </button>
               ))}
             </div>
@@ -140,8 +156,8 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
             <div className="pick-list">
               {paths.map((pth, i) => (
                 <button key={i} className={`pick ${pick?.kind === 'path' && pick.index === i ? 'on path' : ''}`} onClick={() => setPick(pick?.kind === 'path' && pick.index === i ? null : { kind: 'path', index: i })}>
-                  <span className="pick-title">P{i + 1}: {pth.nodes.map(nodeName).join(' → ')}</span>
-                  <span className="pick-sub">{pth.edges.length} units: {pth.edges.map(unitLabel).join(', ')}</span>
+                  <span className="pick-title">P{i + 1}: {nodeName(pth.nodes[0])} → {pth.edges.map(tagOf).join(' → ')} → {nodeName(pth.nodes[pth.nodes.length - 1])}</span>
+                  <span className="pick-sub">{pth.edges.length} units, through {pth.nodes.slice(1, -1).map(nodeName).join(', ')}</span>
                 </button>
               ))}
             </div>
@@ -167,7 +183,19 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
                   x, {c.pUnit}
                   <NumberField ariaLabel="Shift x" value={c.p(x)} onCommit={(v) => Number.isFinite(v) && v >= 0 && setX(Math.min(c.pIn(v), xMax))} />
                 </label>
-                <span className="muted small">max {num(c.p(xMax))}</span>
+                {Number.isFinite(xMax) && xMax > 0 && (
+                  <input
+                    type="range"
+                    className="x-slider"
+                    aria-label="Drag x"
+                    min={0}
+                    max={xMax}
+                    step={xMax / 400}
+                    value={Math.min(x, xMax)}
+                    onChange={(e) => setX(+e.target.value)}
+                  />
+                )}
+                <span className="muted small">max {Number.isFinite(xMax) ? num(c.p(xMax)) : '—'}</span>
                 {item.kind === 'loop' && <button className="btn small" onClick={() => setX(brk!.x)}>Remove smallest unit</button>}
               </div>
               {item.kind === 'path' && (
@@ -234,9 +262,7 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Trade-off history</h2>
-            <p className="muted">One row per evolution step. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
           </div>
-          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Clear history</button>}
         </header>
         {history.length === 0 ? (
           <p className="muted">Apply a step to start the history; the current network is saved as the starting point.</p>

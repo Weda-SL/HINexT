@@ -40,7 +40,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Process streams</h2>
-            <p className="muted">Hot or cold is set from the temperatures. Type either CP or heat load and the other is calculated (shown in grey). If you then change a temperature, the value you typed is kept and the other is recalculated.</p>
           </div>
           <button className="btn primary" onClick={() => dispatch({ type: 'stream/add' })}>+ Add stream</button>
         </header>
@@ -149,7 +148,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
             </tbody>
           </table>
         </div>
-        <p className="hint">ΔT contribution: grey values are the default, ΔTmin/2 ({num(half)} K). Type a value to override it for one stream (e.g. a larger value for a gas or a fouling stream, a smaller one for a boiling or condensing stream); ↺ restores the default. Film coefficients are only needed for area and capital targets.</p>
       </section>
 
       {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="composites" />}
@@ -161,7 +159,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Utilities</h2>
-            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first. Type a duty to limit a utility; the rest of the demand passes to the next hotter (or colder) utility.</p>
           </div>
           <div className="btn-row">
             <button className="btn" onClick={() => dispatch({ type: 'utility/add', kind: 'hot' })}>+ Hot utility</button>

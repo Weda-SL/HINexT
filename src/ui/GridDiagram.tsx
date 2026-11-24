@@ -23,6 +23,8 @@ export interface Highlight {
   /** unit id → sign of the load shift (+1 / −1), drawn as + / − badges */
   units: Map<string, 1 | -1>;
   color: string;
+  /** Show the +x / −x tags next to the loads (off once x is set, so the loads read as final values) */
+  marks?: boolean;
 }
 
 interface Props {
@@ -42,6 +44,8 @@ interface Props {
   /** Side of the pinch being worked on; the other side is muted (only used when there is a pinch) */
   section?: 'above' | 'below' | null;
   onSection?: (s: 'above' | 'below' | null) => void;
+  /** Which unit issues colour a unit (default: all) */
+  issueFilter?: (message: string) => boolean;
   /** Extra controls shown left of the download button */
   actions?: React.ReactNode;
   /** Delete a unit (shows a × on the selected unit and enables the Delete key) */
@@ -68,7 +72,7 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onStreamClick, selectedStream, onMove, onAddUtility, onDelete, section, onSection, actions, utilityDuty, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onStreamClick, selectedStream, onMove, onAddUtility, onDelete, section, onSection, actions, issueFilter, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pending, setPending] = useState<{ stream: string; x: number; branch?: number } | null>(null);
@@ -83,7 +87,12 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const res = new Map(net.units.map((r) => [r.id, r]));
   const tags = unitTags(units);
   const issueLevel = new Map<string, 'error' | 'warning'>();
-  for (const i of net.issues) if (i.unit && issueLevel.get(i.unit) !== 'error') issueLevel.set(i.unit, i.level);
+  const issueText = new Map<string, string[]>();
+  for (const i of net.issues) {
+    if (!i.unit || (issueFilter && !issueFilter(i.message))) continue;
+    if (issueLevel.get(i.unit) !== 'error') issueLevel.set(i.unit, i.level);
+    issueText.set(i.unit, [...(issueText.get(i.unit) ?? []), i.message]);
+  }
 
   const W = 1100;
   // a column for branch CPs between the stream CP and the lines, when any stream is split
@@ -488,7 +497,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           const loadLabel = (cy: number, below: boolean) => (
             <text x={x} y={cy + (below ? 26 : -18)} fontSize="10.5" fontWeight="600" fill={stroke} textAnchor="middle" pointerEvents="none">
               {num(c.p(u.load))}
-              {hl !== undefined && (
+              {hl !== undefined && highlight!.marks !== false && (
                 <tspan fill={highlight!.color} fontWeight="700">{hl > 0 ? ' +x' : ' −x'}</tspan>
               )}
             </text>
@@ -513,7 +522,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               onPointerDown={(e) => startDrag(u, e)}
               onClick={(e) => e.stopPropagation()}
             >
-              <title>{r ? `${num(c.p(u.load))} ${c.pUnit} · ΔT ${num(Math.min(r.dtHot, r.dtCold))} K${r.area ? ` · ${num(r.area)} m²` : ''}` : ''}</title>
+              <title>{(r ? `${num(c.p(u.load))} ${c.pUnit} · ΔT ${num(Math.min(r.dtHot, r.dtCold))} K${r.area ? ` · ${num(r.area)} m²` : ''}` : '') + (issueText.get(u.id) ? `\n${issueText.get(u.id)!.join('\n')}` : '')}</title>
               {children}
             </g>
           );

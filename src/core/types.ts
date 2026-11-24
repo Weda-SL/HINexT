@@ -181,6 +181,8 @@ export interface Project {
   economics: Economics;
   /** Heat exchanger network designed in Stage 1B (optional; older files have none) */
   network?: Network;
+  /** The network being simplified on the Optimization tab (a copy of the MER design, then evolved); the design itself is left as it is */
+  evolved?: Network;
   /** Evolution history (Stage 1C) */
   evolution?: EvolutionStep[];
 }

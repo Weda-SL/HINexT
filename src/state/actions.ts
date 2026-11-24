@@ -195,20 +195,32 @@ export function apply(p: Project, action: Action): Project {
       });
       return { ...p, network: { units, splits } };
     }
-    case 'evolution/record':
-      return { ...p, evolution: [...(p.evolution ?? []), { id: newId('ev'), label: action.label, units: structuredClone(p.network?.units ?? []) }] };
+    // Evolution works on its own copy of the network (p.evolved); the MER design in p.network is never changed here.
+    case 'evolution/record': {
+      const work = workingNetwork(p);
+      return { ...p, evolved: structuredClone(work), evolution: [...(p.evolution ?? []), { id: newId('ev'), label: action.label, units: structuredClone(work.units) }] };
+    }
     case 'evolution/apply': {
-      const start = p.evolution?.length ? p.evolution : [{ id: newId('ev'), label: 'Starting network', units: structuredClone(p.network?.units ?? []) }];
-      return { ...withUnits(p, action.units), evolution: [...start, { id: newId('ev'), label: action.label, units: structuredClone(action.units) }] };
+      const work = workingNetwork(p);
+      const start = p.evolution?.length ? p.evolution : [{ id: newId('ev'), label: 'Starting network (MER design)', units: structuredClone(work.units) }];
+      return { ...p, evolved: { ...structuredClone(work), units: action.units }, evolution: [...start, { id: newId('ev'), label: action.label, units: structuredClone(action.units) }] };
     }
     case 'evolution/restore': {
       const step = p.evolution?.[action.index];
       if (!step) return p;
-      return { ...withUnits(p, structuredClone(step.units)), evolution: p.evolution!.slice(0, action.index + 1) };
+      return { ...p, evolved: { ...structuredClone(workingNetwork(p)), units: structuredClone(step.units) }, evolution: p.evolution!.slice(0, action.index + 1) };
     }
-    case 'evolution/clear':
-      return { ...p, evolution: [] };
+    case 'evolution/clear': {
+      // start again from the current MER design
+      const { evolved: _ev, ...rest } = p;
+      return { ...rest, evolution: [] };
+    }
   }
+}
+
+/** The network the Optimization tab works on: its own evolved copy, or the MER design before the first step. */
+export function workingNetwork(p: Project): Network {
+  return p.evolved ?? p.network ?? { units: [] };
 }
 
 /** Replace the network's units, keeping its stream splits. */

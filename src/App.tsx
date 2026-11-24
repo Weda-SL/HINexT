@@ -3,7 +3,7 @@ import { analyse, supertarget } from './core/analyse';
 import { emptyProject } from './core/project';
 import { EXAMPLES } from './examples';
 import { historyReducer, initHistory } from './state/history';
-import type { Action } from './state/actions';
+import { workingNetwork, type Action } from './state/actions';
 import { APP_VERSION, LocalStore, downloadProject, readProjectFile, requestPersistence } from './state/storage';
 import { DataView } from './ui/DataView';
 import { TargetsView } from './ui/TargetsView';
@@ -13,6 +13,9 @@ import { DesignView } from './ui/DesignView';
 import { EvolutionView } from './ui/EvolutionView';
 import { analyseNetwork } from './core/network';
 import { HistoryButton } from './ui/HistoryButton';
+import { ShareDialog } from './ui/ShareDialog';
+import { decodeShare, encodeShare, sharePayload, shareUrl } from './state/share';
+import { startPwa } from './pwa';
 
 type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
@@ -29,14 +32,36 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>('data');
   const [toast, setToast] = useState<string | null>(null);
+  const [share, setShare] = useState<{ url: string; length: number } | null>(null);
+  const [update, setUpdate] = useState<(() => void) | null>(null);
+
+  // Offline support: a notice when a new version is ready (it is used after a reload, never mid-edit).
+  useEffect(() => {
+    startPwa({
+      onNeedRefresh: (apply) => setUpdate(() => apply),
+      onOfflineReady: () => setToast('HINexT is ready to work offline.'),
+    });
+  }, []);
   const fileInput = useRef<HTMLInputElement>(null);
   const project = hist.present.project;
   const dispatch = useCallback((action: Action) => send({ type: 'do', action }), []);
 
   // Restore the autosaved project once, then autosave on every change.
   useEffect(() => {
-    store.load().then((p) => {
+    store.load().then(async (p) => {
       if (p) send({ type: 'reset', project: p, label: 'Restore autosave' });
+      // a share link opens on top of the autosave, as an undoable step
+      const payload = sharePayload(window.location.hash);
+      if (payload) {
+        try {
+          const shared = await decodeShare(payload);
+          send({ type: 'do', action: { type: 'project/load', project: shared, label: 'Open shared link' } });
+          setToast(`Opened the shared project “${shared.name}”. Undo returns to your previous project.`);
+        } catch (e) {
+          setToast((e as Error).message);
+        }
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
       setReady(true);
     });
     requestPersistence();
@@ -75,7 +100,9 @@ export default function App() {
   }, [toast]);
 
   const analysis = useMemo(() => analyse(project), [project]);
-  const net = useMemo(() => analyseNetwork(project, analysis), [project, analysis]);
+  // The Optimization tab works on its own copy of the network; the HEN design tab keeps the MER design.
+  const evoProject = useMemo(() => ({ ...project, network: workingNetwork(project) }), [project]);
+  const evoNet = useMemo(() => analyseNetwork(evoProject, analysis), [evoProject, analysis]);
   const designNet = useMemo(() => analyseNetwork(project, analysis, 'pinch'), [project, analysis]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
@@ -116,6 +143,20 @@ export default function App() {
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
             onSave={() => downloadProject(project)}
+            onReport={async () => {
+              setToast('Preparing the PDF report…');
+              try {
+                const { exportReport } = await import('./ui/report');
+                await exportReport(project, APP_VERSION);
+                setToast('PDF report downloaded.');
+              } catch (e) {
+                setToast(`Could not create the report: ${(e as Error).message}`);
+              }
+            }}
+            onShare={async () => {
+              const payload = await encodeShare(project, APP_VERSION);
+              setShare({ url: shareUrl(payload, window.location.href), length: payload.length });
+            }}
             onExample={(ex) => dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` })}
           />
           <span className="sep" />
@@ -171,7 +212,7 @@ export default function App() {
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
         {tab === 'design' && <DesignView project={project} analysis={analysis} net={designNet} dispatch={dispatch} />}
-        {tab === 'evolution' && <EvolutionView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
+        {tab === 'evolution' && <EvolutionView project={evoProject} design={project.network} analysis={analysis} net={evoNet} dispatch={dispatch} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
 
@@ -179,6 +220,14 @@ export default function App() {
         HINexT {APP_VERSION} | MIT licence | © Weda 2026
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
+      {update && (
+        <div className="update-bar" role="status">
+          A new version of HINexT is available. Your project is saved in this browser.
+          <button className="btn small primary" onClick={() => update()}>Reload now</button>
+          <button className="btn small ghost" onClick={() => setUpdate(null)}>Later</button>
+        </div>
+      )}
+      {share && <ShareDialog url={share.url} payloadLength={share.length} onSaveFile={() => { downloadProject(project); setShare(null); }} onClose={() => setShare(null)} />}
     </div>
   );
 }

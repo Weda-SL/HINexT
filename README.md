@@ -10,7 +10,7 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 
 - **Runs in your browser.** No installation and no login.
 - **Your data stays with you.** Projects are saved locally in your browser.
-- **Works offline** once loaded.
+- **Works offline** once loaded, and installs as an app.
 - **Built for teaching and practice.** Useful in the classroom and for real process integration studies.
 - **Free and open source** under the MIT License.
 
@@ -31,8 +31,13 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 ## In development (Stages 1B and 1C)
 
 - **HEN design tab:** grid diagram with the pinch line. Click a hot and then a cold stream to place an exchanger (its load starts at the tick-off value); drag units to reorder them; add heaters and coolers for the remaining duty. Temperatures between units are recalculated from the loads, and the design is checked live: ΔTmin violations and temperature crosses, heat across the pinch, heaters below and coolers above the pinch, the CP rule at the pinch, the stream-count rule, and over-satisfied streams. A design-vs-targets table compares utilities, units, area and total annual cost. A design guide applies the pinch design heuristics (start at the pinch, CP and number rules, tick-off) and lists the next feasible matches, each tried on the network before it is suggested. Streams can be split into parallel branches over one side of the pinch (click a stream's name); each branch carries a share of the flow, is matched on its own and mixes back at the end of that side. When the number or CP rule cannot be met at the pinch, the guide suggests the split.
-- **Optimization tab** (network evolution): loop count from Euler's theorem (L = U − N + S), every loop and every hot-to-cold utility path, loop breaking (removes the smallest unit), path relaxation with a solver for the x that restores ΔTmin, a live preview, and a trade-off history table with step-back.
-- Network evolution does not handle split streams yet.
+- **Optimization tab** (network evolution): works on its own copy of the MER design, so the HEN design tab keeps the design as built (if the design changes later, the tab offers to start again from it). Loop count from Euler's theorem (L = U − N + S), every loop and every hot-to-cold utility path, loop breaking (removes the smallest unit), path relaxation with a solver for the x that restores ΔTmin, a live preview (type x or drag it), and a trade-off history table with step-back. Split networks are supported: each branch counts as its own node, so loops and paths shift load within a branch.
+
+## In development (Stage 1D — sharing, exports, offline)
+
+- **PDF report:** ☰ → Export as PDF makes one vector PDF with the stream and utility data, energy targets, problem table and cascade (table and diagram), every curve, cost targets and supertargeting, the HEN design (grid diagram, unit table, splits, design against targets) and each optimization step with its grid diagram.
+- **Share links:** ☰ → Share link… packs the whole project into the link (after `#`), so nothing is uploaded. Very large projects are pointed to the `.pinch` file instead.
+- **Offline and install:** a service worker caches the app after the first visit; it can be installed from the browser, and a notice offers to reload when a new version is ready.
 
 ## Validation
 
