@@ -156,6 +156,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
 
       {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="composites" />}
       {analysis.streams.length > 0 && <ProblemTableView project={project} analysis={analysis} part="table" />}
+      {analysis.streams.length > 0 && <ProblemTableView project={project} analysis={analysis} part="cascade" />}
 
       <section className="card">
         <header className="card-head">
