@@ -40,7 +40,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Process streams</h2>
-            <p className="muted">Hot or cold is set from the temperatures. Type either CP or heat load and the other is calculated (shown in grey). If you then change a temperature, the value you typed is kept and the other is recalculated.</p>
           </div>
           <button className="btn primary" onClick={() => dispatch({ type: 'stream/add' })}>+ Add stream</button>
         </header>
