@@ -148,7 +148,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
             </tbody>
           </table>
         </div>
-        <p className="hint">ΔT contribution: grey values are the default, ΔTmin/2 ({num(half)} K). Type a value to override it for one stream (e.g. a larger value for a gas or a fouling stream, a smaller one for a boiling or condensing stream); ↺ restores the default. Film coefficients are only needed for area and capital targets.</p>
       </section>
 
       {analysis.streams.length > 0 && <CurvesView project={project} analysis={analysis} which="composites" />}
