@@ -32,6 +32,8 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
     return b ? `${n} (branch ${b})` : n;
   };
   const ends = useMemo(() => endsFor(project, analysis.pt.pinches.length > 0), [project, analysis]);
+  /** Short unit tag as on the grid: E1, H1, C1 */
+  const tagOf = (id: string) => tags.get(id) ?? id;
   const unitLabel = (id: string) => {
     const u = units.find((v) => v.id === id);
     return u ? unitName(u, streams, utils, tags) : id;
@@ -125,8 +127,8 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
             <div className="pick-list">
               {loops.map((l, i) => (
                 <button key={i} className={`pick ${pick?.kind === 'loop' && pick.index === i ? 'on loop' : ''}`} onClick={() => setPick(pick?.kind === 'loop' && pick.index === i ? null : { kind: 'loop', index: i })}>
-                  <span className="pick-title">L{i + 1}: {l.nodes.map(nodeName).join(' – ')}</span>
-                  <span className="pick-sub">{l.edges.length} units: {l.edges.map(unitLabel).join(', ')}</span>
+                  <span className="pick-title">L{i + 1}: {l.edges.map(tagOf).join(' – ')}</span>
+                  <span className="pick-sub">{l.edges.length} units, through {[...new Set(l.nodes.slice(0, -1))].map(nodeName).join(', ')}</span>
                 </button>
               ))}
             </div>
@@ -138,8 +140,8 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
             <div className="pick-list">
               {paths.map((pth, i) => (
                 <button key={i} className={`pick ${pick?.kind === 'path' && pick.index === i ? 'on path' : ''}`} onClick={() => setPick(pick?.kind === 'path' && pick.index === i ? null : { kind: 'path', index: i })}>
-                  <span className="pick-title">P{i + 1}: {pth.nodes.map(nodeName).join(' → ')}</span>
-                  <span className="pick-sub">{pth.edges.length} units: {pth.edges.map(unitLabel).join(', ')}</span>
+                  <span className="pick-title">P{i + 1}: {nodeName(pth.nodes[0])} → {pth.edges.map(tagOf).join(' → ')} → {nodeName(pth.nodes[pth.nodes.length - 1])}</span>
+                  <span className="pick-sub">{pth.edges.length} units, through {pth.nodes.slice(1, -1).map(nodeName).join(', ')}</span>
                 </button>
               ))}
             </div>
