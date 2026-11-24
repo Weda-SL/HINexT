@@ -23,6 +23,8 @@ export interface Highlight {
   /** unit id → sign of the load shift (+1 / −1), drawn as + / − badges */
   units: Map<string, 1 | -1>;
   color: string;
+  /** Show the +x / −x tags next to the loads (off once x is set, so the loads read as final values) */
+  marks?: boolean;
 }
 
 interface Props {
@@ -495,7 +497,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           const loadLabel = (cy: number, below: boolean) => (
             <text x={x} y={cy + (below ? 26 : -18)} fontSize="10.5" fontWeight="600" fill={stroke} textAnchor="middle" pointerEvents="none">
               {num(c.p(u.load))}
-              {hl !== undefined && (
+              {hl !== undefined && highlight!.marks !== false && (
                 <tspan fill={highlight!.color} fontWeight="700">{hl > 0 ? ' +x' : ' −x'}</tspan>
               )}
             </text>

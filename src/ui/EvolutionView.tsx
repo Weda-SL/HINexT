@@ -80,7 +80,7 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
   const shownProject = preview ? { ...project, network: { ...project.network, units: preview } } : project;
   const xMax = item && signs ? maxShift(units, signs) : 0;
 
-  const highlight = item && signs ? { units: new Map([...signs].filter(([id]) => preview?.some((u) => u.id === id) ?? true)), color: item.kind === 'loop' ? LOOP_COLOR : PATH_COLOR } : undefined;
+  const highlight = item && signs ? { units: new Map([...signs].filter(([id]) => preview?.some((u) => u.id === id) ?? true)), color: item.kind === 'loop' ? LOOP_COLOR : PATH_COLOR, marks: !(x > 0) } : undefined;
 
   const minDt = (n: NetworkResult) => Math.min(...n.units.filter((r) => r.load > 0).map((r) => Math.min(r.dtHot, r.dtCold)));
 
