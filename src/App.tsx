@@ -6,16 +6,14 @@ import { historyReducer, initHistory } from './state/history';
 import type { Action } from './state/actions';
 import { APP_VERSION, LocalStore, downloadProject, readProjectFile, requestPersistence } from './state/storage';
 import { DataView } from './ui/DataView';
-import { CurvesView } from './ui/CurvesView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
 import { AppMenu } from './ui/AppMenu';
 import { HistoryButton } from './ui/HistoryButton';
 
-type Tab = 'data' | 'curves' | 'targets';
+type Tab = 'data' | 'targets';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'data', label: 'Data' },
-  { id: 'curves', label: 'Curves' },
   { id: 'targets', label: 'Targets & costs' },
 ];
 
@@ -162,7 +160,6 @@ export default function App() {
 
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
-        {tab === 'curves' && <CurvesView project={project} analysis={analysis} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
 
