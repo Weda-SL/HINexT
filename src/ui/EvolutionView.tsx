@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type Dispatch } from 'react';
-import type { NetUnit, Project } from '../core/types';
+import type { NetUnit, Network, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { analyseNetwork, unitName, unitTags, type NetworkResult } from '../core/network';
@@ -12,6 +12,8 @@ interface Props {
   project: Project;
   analysis: Analysis;
   net: NetworkResult;
+  /** The MER design on the HEN design tab, to notice when it has changed since evolution started */
+  design?: Network;
   dispatch: Dispatch<Action>;
 }
 
@@ -20,7 +22,7 @@ type Pick = { kind: 'loop' | 'path'; index: number } | null;
 const LOOP_COLOR = '#4b3cc0';
 const PATH_COLOR = '#eb6834';
 
-export function EvolutionView({ project, analysis, net, dispatch }: Props) {
+export function EvolutionView({ project, design, analysis, net, dispatch }: Props) {
   const c = conv(project.settings.units);
   const units = useMemo(() => project.network?.units ?? [], [project.network]);
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
@@ -104,12 +106,23 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
     return <section className="card empty-card">Design a network on the HEN design tab first. Evolution then simplifies it by breaking loops and relaxing along utility paths.</section>;
   }
 
+  const designChanged =
+    history.length > 0 && (JSON.stringify(history[0].units) !== JSON.stringify(design?.units ?? []) || JSON.stringify(project.network?.splits ?? []) !== JSON.stringify(design?.splits ?? []));
+
   return (
     <div className="stack">
+      {designChanged && (
+        <div className="confirm-bar" role="status">
+          <span className="confirm-icon">⚠</span>
+          <span className="confirm-msg">The MER design on the HEN design tab has changed since you started optimizing. These steps still work on the earlier design.</span>
+          <button className="btn small primary" onClick={() => dispatch({ type: 'evolution/clear' })}>Start again from the new design</button>
+        </div>
+      )}
       <section className="card">
         <header className="card-head">
           <div>
-            <h2>Network {preview ? '(preview)' : ''}</h2>
+            <h2>Network {preview ? '(preview)' : history.length > 1 ? `(step ${history.length - 1})` : ''}</h2>
+            <p className="muted">Optimization works on its own copy of the MER design, so the HEN design tab keeps the design as you built it.</p>
             <p className="muted">
               Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as its own node, since its share of the flow is fixed)' : ''}. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
             </p>
@@ -246,9 +259,9 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Trade-off history</h2>
-            <p className="muted">One row per evolution step. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
+            <p className="muted">One row per evolution step, starting from the MER design. Fewer units save capital but cost energy; the total annual cost shows the balance.</p>
           </div>
-          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Clear history</button>}
+          {history.length > 0 && <button className="btn ghost small" onClick={() => dispatch({ type: 'evolution/clear' })}>Start again from the design</button>}
         </header>
         {history.length === 0 ? (
           <p className="muted">Apply a step to start the history; the current network is saved as the starting point.</p>

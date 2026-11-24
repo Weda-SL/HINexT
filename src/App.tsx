@@ -3,7 +3,7 @@ import { analyse, supertarget } from './core/analyse';
 import { emptyProject } from './core/project';
 import { EXAMPLES } from './examples';
 import { historyReducer, initHistory } from './state/history';
-import type { Action } from './state/actions';
+import { workingNetwork, type Action } from './state/actions';
 import { APP_VERSION, LocalStore, downloadProject, readProjectFile, requestPersistence } from './state/storage';
 import { DataView } from './ui/DataView';
 import { TargetsView } from './ui/TargetsView';
@@ -100,7 +100,9 @@ export default function App() {
   }, [toast]);
 
   const analysis = useMemo(() => analyse(project), [project]);
-  const net = useMemo(() => analyseNetwork(project, analysis), [project, analysis]);
+  // The Optimization tab works on its own copy of the network; the HEN design tab keeps the MER design.
+  const evoProject = useMemo(() => ({ ...project, network: workingNetwork(project) }), [project]);
+  const evoNet = useMemo(() => analyseNetwork(evoProject, analysis), [evoProject, analysis]);
   const designNet = useMemo(() => analyseNetwork(project, analysis, 'pinch'), [project, analysis]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
@@ -200,7 +202,7 @@ export default function App() {
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
         {tab === 'design' && <DesignView project={project} analysis={analysis} net={designNet} dispatch={dispatch} />}
-        {tab === 'evolution' && <EvolutionView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
+        {tab === 'evolution' && <EvolutionView project={evoProject} design={project.network} analysis={analysis} net={evoNet} dispatch={dispatch} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
 

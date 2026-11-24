@@ -61,3 +61,23 @@ describe('evolution on split networks', () => {
     expect(findLoops(units, ends)).toHaveLength(0);
   });
 });
+
+describe('evolution keeps the MER design', () => {
+  it('applies steps to its own copy, restores and starts again from the design', async () => {
+    const { apply } = await import('../src/state/actions');
+    let p = ex('kemp-4-mer');
+    const design = structuredClone(p.network!);
+    const units = p.network!.units;
+    const b = breakLoop(units, findLoops(units)[0]);
+    p = apply(p, { type: 'evolution/apply', units: applyShift(units, b.signs, b.x), label: 'Break loop' });
+    expect(p.network).toEqual(design);
+    expect(p.evolved!.units).toHaveLength(5);
+    expect(p.evolution).toHaveLength(2);
+    p = apply(p, { type: 'evolution/restore', index: 0 });
+    expect(p.evolved!.units).toHaveLength(6);
+    expect(p.network).toEqual(design);
+    p = apply(p, { type: 'evolution/clear' });
+    expect(p.evolved).toBeUndefined();
+    expect(p.evolution).toEqual([]);
+  });
+});
