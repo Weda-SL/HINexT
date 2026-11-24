@@ -177,8 +177,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             <text x={px(PINCH_X) + 8} y={H - 10} fontSize="11" fill={PINCH}>
               cold {num(c.t(pinch - analysis.dtMin / 2))} {c.tUnit}
             </text>
-            <text x={px(0.25)} y={44} fontSize="11" fill={INK3} textAnchor="middle">above the pinch</text>
-            <text x={px(0.75)} y={44} fontSize="11" fill={INK3} textAnchor="middle">below the pinch</text>
+            <text x={px(0.25)} y={26} fontSize="11.5" fill={INK3} textAnchor="middle">above the pinch</text>
+            <text x={px(0.75)} y={26} fontSize="11.5" fill={INK3} textAnchor="middle">below the pinch</text>
           </g>
         )}
 
