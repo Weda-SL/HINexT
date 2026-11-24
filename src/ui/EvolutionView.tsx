@@ -137,9 +137,6 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
       <div className="two-col">
         <section className="card">
           <h2>Loops ({loops.length})</h2>
-          <p className="muted small">
-            Euler: L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as a node)' : ''}
-          </p>
           {loops.length === 0 ? (
             <p className="muted">No loops. {lc.loops > 0 ? 'Some loops are longer than the search limit.' : ''}</p>
           ) : (
