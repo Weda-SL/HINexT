@@ -255,23 +255,48 @@ function suggestSplit(region: Region, hot: End[], cold: End[], project: Project)
 /**
  * Where to place a new match: pinch matches next to the pinch (closer to it
  * than any existing unit on the two streams), other matches beyond the
- * existing units, away from the pinch.
+ * existing units, away from the pinch. The spot is then moved to the nearest
+ * free position, so the new unit does not sit on top of another one.
  */
 function placeX(units: NetUnit[], hot: string, cold: string, above: boolean, pinchMatch: boolean, noPinch: boolean): number {
   const xs = units.filter((u) => u.hot === hot || u.cold === cold).map((u) => u.x);
+  const GAP = 0.035;
   if (noPinch) {
     const max = xs.length ? Math.max(...xs) : 0.3;
-    return +Math.min(0.95, max + 0.08).toFixed(4);
+    return free(units, Math.min(0.95, max + 0.08), Math.min(0.95, max + GAP), 0.97);
   }
   const side = xs.filter((x) => (above ? x < PINCH_X : x >= PINCH_X));
   if (above) {
-    if (pinchMatch) return +((Math.max(0.3, ...side) + PINCH_X) / 2).toFixed(4);
+    if (pinchMatch) {
+      const last = Math.max(0.3, ...side);
+      return free(units, (last + PINCH_X) / 2, Math.min(last + GAP, PINCH_X - 0.015), PINCH_X - 0.015);
+    }
     const min = side.length ? Math.min(...side) : 0.4;
-    return +Math.max(0.04, min - 0.07).toFixed(4);
+    return free(units, Math.max(0.04, min - 0.07), 0.03, Math.max(0.03, min - GAP));
   }
-  if (pinchMatch) return +((Math.min(0.7, ...side) + PINCH_X) / 2).toFixed(4);
+  if (pinchMatch) {
+    const first = Math.min(0.7, ...side);
+    return free(units, (first + PINCH_X) / 2, PINCH_X + 0.015, Math.max(first - GAP, PINCH_X + 0.015));
+  }
   const max = side.length ? Math.max(...side) : 0.6;
-  return +Math.min(0.96, max + 0.07).toFixed(4);
+  return free(units, Math.min(0.96, max + 0.07), Math.min(0.97, max + GAP), 0.97);
+}
+
+/** The position nearest to `want` within [lo, hi] that is at least a small gap away from every existing unit. */
+function free(units: NetUnit[], want: number, lo: number, hi: number): number {
+  const GAP = 0.03;
+  const taken = units.map((u) => u.x);
+  const ok = (x: number) => taken.every((t) => Math.abs(t - x) >= GAP - 1e-9);
+  const clamp = (x: number) => Math.min(Math.max(x, Math.min(lo, hi)), Math.max(lo, hi));
+  const start = clamp(want);
+  if (ok(start)) return +start.toFixed(4);
+  const step = 0.005;
+  for (let k = 1; k <= 200; k++) {
+    for (const x of [start + k * step, start - k * step]) {
+      if (x >= Math.min(lo, hi) - 1e-9 && x <= Math.max(lo, hi) + 1e-9 && ok(x)) return +x.toFixed(4);
+    }
+  }
+  return +start.toFixed(4);
 }
 
 function fmt(x: number): string {

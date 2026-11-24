@@ -112,3 +112,25 @@ describe('stream splits: actions', () => {
     expect(p.network!.units[0].coldBranch).toBeUndefined();
   });
 });
+
+describe('design guide: placement', () => {
+  it('places each suggested match clear of the units already on the grid', () => {
+    for (const build of [kemp, lh]) {
+      let p = build();
+      for (let step = 0; step < 12; step++) {
+        const { a, net } = run(p);
+        const g = designGuide(p, a, net);
+        const sp = g.regions.map((r) => r.split).find(Boolean);
+        if (sp) {
+          p = apply(p, { type: 'split/set', stream: sp.stream, side: sp.region, fractions: sp.fractions });
+          continue;
+        }
+        const next = g.regions.flatMap((r) => r.suggestions).find((s) => s.feasible);
+        if (!next) break;
+        p = apply(p, { type: 'unit/add', unit: { id: `G${step}`, kind: 'exchanger', hot: next.hot, cold: next.cold, load: next.load, x: next.x, hotBranch: next.hotBranch, coldBranch: next.coldBranch } });
+      }
+      const xs = p.network!.units.map((u) => u.x).sort((x, y) => x - y);
+      for (let i = 1; i < xs.length; i++) expect(xs[i] - xs[i - 1]).toBeGreaterThanOrEqual(0.03 - 1e-9);
+    }
+  });
+});
