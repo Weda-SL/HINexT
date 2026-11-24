@@ -54,7 +54,7 @@ export function SplitEditor({ project, analysis, net, streamId, dispatch }: Prop
       if (!(share > 0 && share < 1)) return;
       const restOld = 1 - f[k];
       const next = f.map((x, i) => (i === k ? share : restOld > 0 ? (x / restOld) * (1 - share) : (1 - share) / (f.length - 1)));
-      set(side, next.map(round), `Change branch ${k + 1} of ${s.name}`);
+      set(side, next, `Change branch ${k + 1} of ${s.name}`);
     };
     return (
       <div className="split-side" key={side}>
@@ -85,7 +85,7 @@ export function SplitEditor({ project, analysis, net, streamId, dispatch }: Prop
                     className="icon"
                     title={f.length > 2 ? 'Remove this branch' : 'Remove the split'}
                     aria-label={f.length > 2 ? `Remove branch ${k + 1}` : 'Remove the split'}
-                    onClick={() => (f.length > 2 ? set(side, normalise(f.filter((_, i) => i !== k)).map(round), `Remove branch ${k + 1} of ${s.name}`) : set(side, null, `Remove split of ${s.name}`))}
+                    onClick={() => (f.length > 2 ? set(side, normalise(f.filter((_, i) => i !== k)), `Remove branch ${k + 1} of ${s.name}`) : set(side, null, `Remove split of ${s.name}`))}
                   >
                     ×
                   </button>
@@ -101,7 +101,7 @@ export function SplitEditor({ project, analysis, net, streamId, dispatch }: Prop
               // split the largest branch in half
               const k = f.indexOf(Math.max(...f));
               const next = f.flatMap((x, i) => (i === k ? [x / 2, x / 2] : [x]));
-              set(side, next.map(round), `Add a branch to ${s.name}`);
+              set(side, next, `Add a branch to ${s.name}`);
             }}
           >
             + Branch
@@ -131,4 +131,3 @@ function normalise(f: number[]): number[] {
   return t > 0 ? f.map((x) => x / t) : f;
 }
 
-const round = (x: number) => Math.round(x * 1e6) / 1e6;

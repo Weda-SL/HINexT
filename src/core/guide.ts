@@ -213,7 +213,7 @@ function suggestSplit(region: Region, hot: End[], cold: End[], project: Project)
   const make = (e: End, cps: number[], reason: string): SplitSuggestion => ({
     region,
     stream: e.s.id,
-    fractions: cps.map((c) => round(c / e.cp)),
+    fractions: cps.map((c) => c / e.cp),
     cps,
     reason,
   });
@@ -251,8 +251,6 @@ function suggestSplit(region: Region, hot: End[], cold: End[], project: Project)
   const B = bg.find((e) => !isSplit(e));
   return B ? make(B, [B.cp / 2, B.cp / 2], countReason) : undefined;
 }
-
-const round = (x: number) => Math.round(x * 1e4) / 1e4;
 
 /**
  * Where to place a new match: pinch matches next to the pinch (closer to it
