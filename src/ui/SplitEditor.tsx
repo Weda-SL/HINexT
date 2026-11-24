@@ -13,6 +13,7 @@ interface Props {
   net: NetworkResult;
   streamId: string;
   dispatch: Dispatch<Action>;
+  onClose: () => void;
 }
 
 /**
@@ -20,7 +21,7 @@ interface Props {
  * is given as its CP (or, for a non-linear stream, its share of the flow); the
  * other branches take up the difference in proportion.
  */
-export function SplitEditor({ project, analysis, net, streamId, dispatch }: Props) {
+export function SplitEditor({ project, analysis, net, streamId, dispatch, onClose }: Props) {
   const c = conv(project.settings.units);
   const s = analysis.streams.find((x) => x.id === streamId);
   if (!s) return null;
@@ -117,6 +118,9 @@ export function SplitEditor({ project, analysis, net, streamId, dispatch }: Prop
 
   return (
     <div className="unit-panel split-panel" data-keep-section>
+      <button className="panel-close" title="Close" aria-label="Close the split panel" onClick={onClose}>
+        ×
+      </button>
       <h3>Split {s.name}</h3>
       <p className="muted small">
         Branches run in parallel over one side of the pinch and mix again at its end. {byCp ? 'Set each branch’s CP; the other branches share the rest.' : 'Set each branch’s share of the flow.'} Click a branch line on the grid to match it.

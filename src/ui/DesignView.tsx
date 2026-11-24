@@ -238,7 +238,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
               </div>
           </div>
         )}
-        {streamSel && !sel && <SplitEditor project={project} analysis={analysis} net={net} streamId={streamSel} dispatch={dispatch} />}
+        {streamSel && !sel && <SplitEditor project={project} analysis={analysis} net={net} streamId={streamSel} dispatch={dispatch} onClose={() => setStreamSel(null)} />}
       </section>
 
       <GuidePanel

@@ -368,3 +368,7 @@ g:hover > .unit-del { stroke: #6b7280; }
 .split-table td { padding: 2px 10px 2px 0; }
 .split-table input { width: 90px; }
 .split-item { border-style: dashed; }
+
+.unit-panel { position: relative; }
+.panel-close { position: absolute; top: 8px; right: 0; border: 0; background: none; font-size: 20px; line-height: 1; color: #b8bcc4; cursor: pointer; padding: 2px 6px; }
+.panel-close:hover { color: #6b7280; }
