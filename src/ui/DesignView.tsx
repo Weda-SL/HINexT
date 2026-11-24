@@ -217,8 +217,10 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
             <div className="compare-cards">
             {rows.map((r) => {
               const over = r.diff !== undefined && Number.isFinite(r.diff) && r.diff > 1e-6;
+              // utility duty still short of its target: the design is not finished
+              const short = (r.label === 'Hot utility' || r.label === 'Cold utility') && r.diff !== undefined && r.diff < -1e-6;
               return (
-                <div key={r.label} className="compare-card">
+                <div key={r.label} className={`compare-card ${short ? 'short' : ''}`} title={short ? `${r.label} target not met yet` : undefined}>
                   <div className="cc-title">{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</div>
                   <div className="cc-vals">
                     <div><span className="cc-k">Design</span><span className={`cc-v ${over ? 'warn' : ''}`}>{r.design}</span></div>
