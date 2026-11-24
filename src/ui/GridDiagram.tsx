@@ -16,7 +16,7 @@ const PINCH = '#4b3cc0';
 const ERR = '#b42318';
 const WARN = '#c27a00';
 const HEATER = '#eb6834';
-const COOLER = '#1baf7a';
+const COOLER = '#2a78d6';
 const FONT = 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
 
 export interface Highlight {
@@ -260,8 +260,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                     if (editable && remaining > 0) onAddUtility?.(s.id);
                   }}
                 >
-                  <rect x={0} y={-10} width={118} height={20} rx={10} fill={remaining > 0 ? (s.kind === 'hot' ? '#e5f6ef' : '#fff0e8') : '#fdecea'} />
-                  <text x={59} y={4} fontSize="11" fontWeight="600" textAnchor="middle" fill={remaining > 0 ? (s.kind === 'hot' ? '#12734f' : '#a8461c') : ERR}>
+                  <rect x={0} y={-10} width={118} height={20} rx={10} fill={remaining > 0 ? (s.kind === 'hot' ? '#e8f1fc' : '#fff0e8') : '#fdecea'} />
+                  <text x={59} y={4} fontSize="11" fontWeight="600" textAnchor="middle" fill={remaining > 0 ? (s.kind === 'hot' ? '#1d5aa6' : '#a8461c') : ERR}>
                     {remaining > 0
                       ? `${editable ? '+ ' : ''}${s.kind === 'hot' ? 'cool' : 'heat'} ${num(c.p(remaining))}`
                       : `over by ${num(c.p(-remaining))}`}
