@@ -179,7 +179,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
           onSelect(null);
           if (sections) {
             const p = toLocal(e);
-            if (p >= L - 20 && p <= W - R) onSection!(sideOf(ix(p)));
+            onSection!(p >= L - 20 && p <= W - R ? sideOf(ix(p)) : null);
           }
         }}
       >

@@ -85,7 +85,7 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
   };
 
   return (
-    <section className="card">
+    <section className="card" data-keep-section>
       <header className="card-head">
         <div>
           <h2>Design guide</h2>

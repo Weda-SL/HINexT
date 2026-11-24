@@ -1,4 +1,4 @@
-import { useState, type Dispatch } from 'react';
+import { useEffect, useState, type Dispatch } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
@@ -22,6 +22,17 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const [section, setSection] = useState<'above' | 'below' | null>(null);
   const hasPinch = analysis.pt.pinches.length > 0;
+  // clicking outside the grid (except buttons, the guide and the unit editor) leaves the side
+  useEffect(() => {
+    if (!section) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (!t || t.closest('[data-keep-section], svg.grid-svg, button, .confirm-bar, [role="menu"]')) return;
+      setSection(null);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [section]);
   const units = project.network?.units ?? [];
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
@@ -154,7 +165,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
       />
 
       <div className="two-col">
-        <section className="card">
+        <section className="card" data-keep-section={sel ? '' : undefined}>
           <h2>{sel ? unitName(sel, streams, utils, tags) : 'Selected unit'}</h2>
           {!sel || !selRes ? (
             <p className="muted">Click a unit on the grid to edit its load, see its temperatures and area, or delete it.</p>
