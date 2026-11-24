@@ -89,7 +89,6 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
       <header className="card-head">
         <div>
           <h2>Design guide</h2>
-          <p className="muted">Next matches by the pinch design method. Each suggestion has been tried on your network and keeps ΔT ≥ ΔTmin; the first one is the textbook choice.</p>
         </div>
       </header>
       <div className="guide-grid">{guide.regions.map(region)}</div>
