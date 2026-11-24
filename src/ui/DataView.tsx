@@ -162,7 +162,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Utilities</h2>
-            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first.</p>
+            <p className="muted">Equal supply and target temperatures mean an isothermal utility (e.g. condensing steam). Duties are placed against the grand composite curve: coldest hot utility and warmest cold utility first. Type a duty to limit a utility; the rest of the demand passes to the next hotter (or colder) utility.</p>
           </div>
           <div className="btn-row">
             <button className="btn" onClick={() => dispatch({ type: 'utility/add', kind: 'hot' })}>+ Hot utility</button>
@@ -180,7 +180,7 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 <th className="r">Cost<br /><span className="unit">$/kW·yr</span></th>
                 <th className="r">h<br /><span className="unit">kW/m²K</span></th>
                 <th className="r">ΔT contrib.<br /><span className="unit">K</span></th>
-                <th className="r">Target duty<br /><span className="unit">{c.pUnit}</span></th>
+                <th className="r">Duty<br /><span className="unit">{c.pUnit}</span></th>
                 <th className="r">Cost<br /><span className="unit">$/yr</span></th>
                 <th aria-label="Row actions" />
               </tr>
@@ -211,7 +211,20 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     <td><NumberField ariaLabel="Cost" value={u.cost} onCommit={(v) => upd({ cost: v })} /></td>
                     <td><NumberField ariaLabel="Film coefficient" value={u.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
                     <td><DtCell value={u.dtCont} half={half} name={u.name} onChange={(dtCont) => upd({ dtCont })} /></td>
-                    <td className="r strong">{ok ? num(c.p(t?.duty ?? 0)) : '—'}</td>
+                    <td>
+                      {ok ? (
+                        <DutyCell
+                          duty={c.p(t?.duty ?? 0)}
+                          limit={typeof u.maxDuty === 'number' && Number.isFinite(u.maxDuty) ? c.p(u.maxDuty) : undefined}
+                          limited={!!t?.limited}
+                          name={u.name}
+                          unit={c.pUnit}
+                          onChange={(v) => upd({ maxDuty: v === null ? null : c.pIn(v) })}
+                        />
+                      ) : (
+                        <span className="derived">—</span>
+                      )}
+                    </td>
                     <td className="r">{ok ? money(t?.opCost ?? 0) : '—'}</td>
                     <td className="row-actions">
                       <button className="icon danger" title="Delete" aria-label={`Delete ${u.name}`} onClick={() => dispatch({ type: 'utility/delete', id: u.id })}>×</button>
@@ -253,6 +266,26 @@ function DtCell({ value, half, name, onChange }: { value: number | null | undefi
       />
       {overridden ? (
         <button className="icon reset" title={`Reset to default (${num(half)} K)`} aria-label={`Reset ΔT contribution of ${name} to default`} onClick={() => onChange(null)}>↺</button>
+      ) : (
+        <span className="reset-space" aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
+/** Utility duty: shows the targeted duty; typing a value sets a limit, ↺ removes it. */
+function DutyCell({ duty, limit, limited, name, unit, onChange }: { duty: number; limit?: number; limited: boolean; name: string; unit: string; onChange: (v: number | null) => void }) {
+  const set = limit !== undefined;
+  return (
+    <div className={`dtc duty ${set ? 'set' : ''}`} title={set && !limited ? `Limit ${num(limit)} ${unit} is more than the process can use here` : undefined}>
+      <NumberField
+        ariaLabel={`Duty of ${name}${set ? ' (limited)' : ''}`}
+        value={duty}
+        dp={3}
+        onCommit={(v) => onChange(Number.isNaN(v) || v < 0 ? null : v)}
+      />
+      {set ? (
+        <button className="icon reset" title="Remove the limit (use as much as possible)" aria-label={`Remove duty limit of ${name}`} onClick={() => onChange(null)}>↺</button>
       ) : (
         <span className="reset-space" aria-hidden="true" />
       )}

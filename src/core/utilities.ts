@@ -3,6 +3,8 @@ import type { Issue, ResolvedStream, ResolvedUtility } from './streams';
 
 export interface UtilityTarget {
   id: string;
+  /** True when the user's limit, not the process, set this duty */
+  limited: boolean;
   name: string;
   kind: 'hot' | 'cold';
   /** Duty assigned by the targeting, kW */
@@ -81,6 +83,7 @@ export function placeUtilities(
       }
       q = lo;
     }
+    q = Math.min(q, u.maxDuty);
     if (q < tol) q = 0;
     duties.set(u.id, q);
     if (q > 0) items.push(itemFor(u, q));
@@ -120,6 +123,7 @@ export function placeUtilities(
       }
       q = lo;
     }
+    q = Math.min(q, u.maxDuty);
     if (q < tol) q = 0;
     duties.set(u.id, q);
     if (q > 0) items.push(itemFor(u, q));
@@ -138,7 +142,7 @@ export function placeUtilities(
 
   const targets: UtilityTarget[] = utilities.map((u) => {
     const duty = duties.get(u.id) ?? 0;
-    return { id: u.id, name: u.name, kind: u.kind, duty, opCost: duty * u.cost };
+    return { id: u.id, name: u.name, kind: u.kind, duty, opCost: duty * u.cost, limited: Number.isFinite(u.maxDuty) && duty >= u.maxDuty - 1e-9 };
   });
   return { targets, unmetHot: unmetHot > tol ? unmetHot : 0, unmetCold, issues };
 }

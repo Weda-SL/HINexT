@@ -46,7 +46,7 @@ Utility temperatures, utility costs and film coefficients in the built-in exampl
 
 - **Phase change:** heat exchanged at one temperature is handled exactly, as a step in the cascade and the curves, so there is no infinite CP and no division by zero.
 - **Shifting:** hot streams shift down and cold streams up by their ΔT contribution (default ΔTmin/2). Utilities shift the same way.
-- **Multiple utilities:** hot utilities are used coldest-first, each taking as much duty as lowers the remaining hot demand one-for-one; cold utilities are used warmest-first, each taking as much as the cascade can feed without a negative heat flow. Demand no utility can meet is reported.
+- **Multiple utilities:** hot utilities are used coldest-first, each taking as much duty as lowers the remaining hot demand one-for-one; cold utilities are used warmest-first, each taking as much as the cascade can feed without a negative heat flow. A user can limit any utility's duty; the rest passes to the next hotter (or colder) utility. Demand no utility can meet is reported.
 - **Minimum units:** Euler, U = N − 1 per region, with the pinch(es) splitting the problem into independent regions for the MER target.
 - **Area:** Bath formula over the balanced composite curves, A = Σₖ (1/ΔT_LM,k) Σᵢ qᵢ,ₖ/hᵢ. The exchanger / heater / cooler split is approximate and used only by the "separate" cost model.
 - **Capital:** the area target is shared equally between the minimum number of units.
