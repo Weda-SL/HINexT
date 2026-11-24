@@ -35,7 +35,11 @@ export function utilityUnitsFor(analysis: Analysis, net: NetworkResult, streamId
       ? { id: newId('h'), kind: 'heater', cold: s.id, utility, load: +l.toFixed(6), x, coldBranch: branch }
       : { id: newId('c'), kind: 'cooler', hot: s.id, utility, load: +l.toFixed(6), x, hotBranch: branch };
   const br = sr.branches?.[regionOf(x, net.hasPinch)];
-  if (br) return br.map((bb, k) => (bb.remaining > 1e-9 ? make(bb.remaining, k) : null)).filter((u): u is NetUnit => u !== null);
+  if (br) {
+    // on branches, keep clear of where the branches rejoin the stream line
+    const xb = s.kind === 'cold' ? +(a + 0.07).toFixed(4) : +(b - 0.07).toFixed(4);
+    return br.map((bb, k) => (bb.remaining > 1e-9 ? { ...make(bb.remaining, k), x: xb } : null)).filter((u): u is NetUnit => u !== null);
+  }
   return [make(load)];
 }
 

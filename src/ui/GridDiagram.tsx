@@ -92,7 +92,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const rowH = 54;
   const gap = hots.length && colds.length ? 22 : 0;
   // split streams: branches drawn below the main line, BR apart; the row grows to fit them
-  const BR = 18;
+  const BR = 36;
   const splits = splitMap(project);
   const hasPinch = pinch !== undefined;
   const branchesOf = (sid: string, reg: Region) => splits.get(`${sid}|${reg}`);
@@ -339,14 +339,14 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                       return (
                         <g key={k}>
                           {k > 0 && (
-                            <path d={`M${xa} ${y} L${xa + 8} ${yb} L${xb - 8} ${yb} L${xb} ${y}`} fill="none" stroke={color} strokeWidth={isPending && pending?.branch === k ? 4 : 2.5} strokeLinejoin="round" />
+                            <path d={`M${xa} ${y} L${xa + 12} ${yb} L${xb - 12} ${yb} L${xb} ${y}`} fill="none" stroke={color} strokeWidth={isPending && pending?.branch === k ? 4 : 2.5} strokeLinejoin="round" />
                           )}
                           {onMatch && k > 0 && (
                             <rect
                               x={xa + 8}
-                              y={yb - 7}
+                              y={yb - 13}
                               width={Math.max(4, xb - xa - 16)}
-                              height={14}
+                              height={26}
                               fill={isPending && pending?.branch === k ? 'rgba(75,60,192,0.08)' : canPair ? 'rgba(42,120,214,0.05)' : 'transparent'}
                               style={{ cursor: 'crosshair' }}
                               onClick={(e) => clickStream(s, e, k)}
