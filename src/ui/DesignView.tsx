@@ -26,7 +26,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const tags = unitTags(project.network?.units ?? []);
   const sel = units.find((u) => u.id === selected) ?? null;
   const selRes = net.units.find((r) => r.id === selected);
-  const pc = net.pinchCounts;
 
   const remainingOf = (kind: 'hot' | 'cold') => analysis.streams.filter((s) => s.kind === kind && utilityDuty(analysis, net, s.id) > 1e-9);
   const [confirm, setConfirm] = useState<{ message: string; run: () => void } | null>(null);
@@ -135,6 +134,25 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
       </section>
 
       <GuidePanel
+        checks={
+          <>
+        {net.issues.length === 0 ? (
+          <p className="muted">{units.length ? 'No problems found.' : 'Place units on the grid to see feasibility checks.'}</p>
+        ) : (
+          <div className="issues">
+            {[...errors, ...warnings].map((i, k) => (
+              <div
+                key={k}
+                className={`issue ${i.level} ${i.unit ? 'clickable' : ''}`}
+                onClick={() => i.unit && setSelected(i.unit)}
+              >
+                <span className="issue-tag">{i.level === 'error' ? 'Error' : 'Check'}</span> {i.message}
+              </div>
+            ))}
+          </div>
+        )}
+          </>
+        }
         project={project}
         analysis={analysis}
         net={net}
@@ -247,29 +265,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
         </section>
       </div>
 
-      <section className="card">
-        <h2>Checks</h2>
-        {pc && (
-          <p className="hint">
-            Stream count at the pinch: above, {pc.aboveHot} hot ≤ {pc.aboveCold} cold {pc.aboveHot <= pc.aboveCold ? '✓' : '— split a cold stream'}; below, {pc.belowHot} hot ≥ {pc.belowCold} cold {pc.belowHot >= pc.belowCold ? '✓' : '— split a hot stream'}.
-          </p>
-        )}
-        {net.issues.length === 0 ? (
-          <p className="muted">{units.length ? 'No problems found.' : 'Place units on the grid to see feasibility checks.'}</p>
-        ) : (
-          <div className="issues">
-            {[...errors, ...warnings].map((i, k) => (
-              <div
-                key={k}
-                className={`issue ${i.level} ${i.unit ? 'clickable' : ''}`}
-                onClick={() => i.unit && setSelected(i.unit)}
-              >
-                <span className="issue-tag">{i.level === 'error' ? 'Error' : 'Check'}</span> {i.message}
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

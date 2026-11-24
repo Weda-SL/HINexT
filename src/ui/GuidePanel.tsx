@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { NetworkResult } from '../core/network';
@@ -10,9 +10,11 @@ interface Props {
   analysis: Analysis;
   net: NetworkResult;
   onAdd: (s: Suggestion) => void;
+  /** Feasibility checks of the current network, shown at the top */
+  checks: ReactNode;
 }
 
-export function GuidePanel({ project, analysis, net, onAdd }: Props) {
+export function GuidePanel({ project, analysis, net, onAdd, checks }: Props) {
   const c = conv(project.settings.units);
   const guide = useMemo(() => designGuide(project, analysis, net), [project, analysis, net]);
   const [showAll, setShowAll] = useState(false);
@@ -34,11 +36,17 @@ export function GuidePanel({ project, analysis, net, onAdd }: Props) {
       <div className="guide-col" key={r.region}>
         <h3>{title}</h3>
         <p className="hint">{status}</p>
-        {guide.pinch && pinchPhase && (
-          <p className={`hint ${r.numberRuleOk ? '' : 'warn'}`}>
-            Number rule: {r.pinchHot.length} hot {above ? '≤' : '≥'} {r.pinchCold.length} cold at the pinch {r.numberRuleOk ? '✓' : `✗ — split a ${above ? 'cold' : 'hot'} stream (splitting comes next)`}
-          </p>
-        )}
+        {guide.pinch && net.pinchCounts && (() => {
+          const pc = net.pinchCounts!;
+          const h = above ? pc.aboveHot : pc.belowHot;
+          const k = above ? pc.aboveCold : pc.belowCold;
+          const ok = above ? h <= k : h >= k;
+          return (
+            <p className={`hint ${ok ? '' : 'warn'}`}>
+              Number rule at the pinch: {h} hot {above ? '≤' : '≥'} {k} cold {ok ? '✓' : `✗ — split a ${above ? 'cold' : 'hot'} stream (splitting comes next)`}
+            </p>
+          );
+        })()}
         {feasible.length > 0 && (
           <div className="guide-list">
             {(showAll ? feasible : feasible.slice(0, 3)).map((s, i) => (
@@ -80,10 +88,14 @@ export function GuidePanel({ project, analysis, net, onAdd }: Props) {
     <section className="card">
       <header className="card-head">
         <div>
-          <h2>Design guide</h2>
-          <p className="muted">Next matches by the pinch design method. Each suggestion has been tried on your network and keeps ΔT ≥ ΔTmin; the first one is the textbook choice.</p>
+          <h2>Design guide and checks</h2>
+          <p className="muted">Problems in the current network, then the next matches by the pinch design method. Each suggestion has been tried on your network and keeps ΔT ≥ ΔTmin; the first one is the textbook choice.</p>
         </div>
       </header>
+      <div className="guide-checks">
+        <h3>Checks</h3>
+        {checks}
+      </div>
       <div className="guide-grid">{guide.regions.map(region)}</div>
       <details className="guide-rules">
         <summary>The rules being applied</summary>
