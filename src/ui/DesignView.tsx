@@ -198,9 +198,8 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                   )}
                 </div>
                 <dl className="kv kv-major">
-                  <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}</dd>
-                  <dt>Cold side</dt><dd>{num(c.t(selRes.coldIn))} → {num(c.t(selRes.coldOut))} {c.tUnit}</dd>
-                  <dt>ΔT hot end / cold end</dt><dd>{num(selRes.dtHot)} / {num(selRes.dtCold)} K</dd>
+                  <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}<span className="kv-dt" title="Temperature difference at the hot end (hot in − cold out)">ΔT {num(selRes.dtHot)} K</span></dd>
+                  <dt>Cold side</dt><dd>{num(c.t(selRes.coldIn))} → {num(c.t(selRes.coldOut))} {c.tUnit}<span className="kv-dt" title="Temperature difference at the cold end (hot out − cold in)">ΔT {num(selRes.dtCold)} K</span></dd>
                   <dt>LMTD</dt><dd>{num(selRes.lmtd)} K</dd>
                 </dl>
                 <dl className="kv kv-minor">
