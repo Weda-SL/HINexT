@@ -262,3 +262,4 @@ input.num.calc:focus { color: var(--ink); }
 .streams-cell { width: 1%; padding: 0 8px !important; vertical-align: top !important; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: #fff; }
 .streams-th { text-align: center !important; width: 1%; }
 .stream-arrows { display: block; overflow: visible; }
+.grid-table tfoot td { padding: 8px; border-top: 1px solid var(--line-2); border-bottom: none; }
