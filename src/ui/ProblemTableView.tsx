@@ -64,9 +64,6 @@ export function ProblemTableView({ project, analysis, part }: { project: Project
         <header className="card-head">
           <div>
             <h2>Heat cascade</h2>
-            <p className="muted">
-              Cascade the interval balances from the top. With zero hot utility the most negative flow sets QH,min; adding it at the top makes every flow non-negative. The flow is zero at the pinch. Flows are shown just below each temperature, after any phase-change (latent) heat released or absorbed at it.
-            </p>
           </div>
         </header>
         <div className="cascade-fig"><CascadeDiagram pt={pt} c={c} filename={`${safeFileName(project.name)}_heat_cascade`} /></div>
