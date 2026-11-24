@@ -20,7 +20,7 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 - **Non-linear streams:** a profile of temperature points with the CP or heat load of each segment between them, per-segment film coefficients, and phase change (a repeated temperature with a heat load). Only the part between the stream's supply and target temperatures is used.
 - **Utilities:** any number of hot and cold utilities, isothermal (steam) or non-isothermal (hot oil, cooling water), each with a cost in $/kW·yr.
 - **Problem Table Algorithm** and **heat cascade**, shown as tables with the pinch highlighted.
-- **Curves:** composite, shifted composite, grand composite (with utility levels placed on it) and balanced composite curves, each exportable as SVG or PNG.
+- **Curves:** composite, shifted composite, grand composite (with utility levels placed on it) and balanced composite curves, each downloadable as PDF, SVG or PNG from one Download button.
 - **ΔTmin input** with live update of every target and curve.
 - **Targets:** QH,min / QC,min, pinch temperatures, multiple-utility duties, minimum units (overall and MER), area (Bath formula), capital, operating and total annual cost.
 - **Capital cost models:** power law `a + b·A^c`, linear `a + b·A`, separate parameters for exchangers / heaters / coolers, or a user-defined expression in `A`; annualised with interest rate and plant life.
