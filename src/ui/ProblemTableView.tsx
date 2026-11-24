@@ -1,6 +1,7 @@
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import { conv, num } from './format';
+import { CascadeDiagram } from './CascadeDiagram';
 
 export function ProblemTableView({ project, analysis, part }: { project: Project; analysis: Analysis; part: 'table' | 'cascade' }) {
   const c = conv(project.settings.units);
@@ -73,45 +74,48 @@ export function ProblemTableView({ project, analysis, part }: { project: Project
             </p>
           </div>
         </header>
+        <div className="cascade-grid">
         <div className="table-wrap">
-          <table className="grid-table data narrow">
-            <thead>
-              <tr>
-                <th className="r">T*<br /><span className="unit">{c.tUnit}</span></th>
-                <th className="r">Flow, no hot utility<br /><span className="unit">{c.pUnit}</span></th>
-                {hasLatent && <th className="r">Phase change at T*<br /><span className="unit">{c.pUnit}</span></th>}
-                <th className="r">Feasible flow<br /><span className="unit">{c.pUnit}</span></th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {pt.boundaries.map((t, i) => {
-                const isPinch = pinchSet.has(t);
-                return (
-                  <tr key={i} className={isPinch ? 'pinch-row' : ''}>
-                    <td className="r">{num(c.t(t))}</td>
-                    <td className={`r ${pt.infeasible[i] < -1e-9 ? 'neg' : ''}`}>{num(c.p(pt.infeasible[i]))}</td>
-                    {hasLatent && (
-                      <td className="r">
-                        {latent.has(t) ? (
-                          <span title={[...latent.get(t)!.hotIds, ...latent.get(t)!.coldIds].map((id) => names.get(id)).join(', ')}>
-                            {latent.get(t)!.hot > 0 && <span className="tag surplus">+{num(c.p(latent.get(t)!.hot))}</span>}
-                            {latent.get(t)!.cold > 0 && <span className="tag deficit">−{num(c.p(latent.get(t)!.cold))}</span>}
-                          </span>
-                        ) : null}
+            <table className="grid-table data narrow">
+              <thead>
+                <tr>
+                  <th className="r">T*<br /><span className="unit">{c.tUnit}</span></th>
+                  <th className="r">Flow, no hot utility<br /><span className="unit">{c.pUnit}</span></th>
+                  {hasLatent && <th className="r">Phase change at T*<br /><span className="unit">{c.pUnit}</span></th>}
+                  <th className="r">Feasible flow<br /><span className="unit">{c.pUnit}</span></th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {pt.boundaries.map((t, i) => {
+                  const isPinch = pinchSet.has(t);
+                  return (
+                    <tr key={i} className={isPinch ? 'pinch-row' : ''}>
+                      <td className="r">{num(c.t(t))}</td>
+                      <td className={`r ${pt.infeasible[i] < -1e-9 ? 'neg' : ''}`}>{num(c.p(pt.infeasible[i]))}</td>
+                      {hasLatent && (
+                        <td className="r">
+                          {latent.has(t) ? (
+                            <span title={[...latent.get(t)!.hotIds, ...latent.get(t)!.coldIds].map((id) => names.get(id)).join(', ')}>
+                              {latent.get(t)!.hot > 0 && <span className="tag surplus">+{num(c.p(latent.get(t)!.hot))}</span>}
+                              {latent.get(t)!.cold > 0 && <span className="tag deficit">−{num(c.p(latent.get(t)!.cold))}</span>}
+                            </span>
+                          ) : null}
+                        </td>
+                      )}
+                      <td className="r strong">{num(c.p(pt.feasible[i]))}</td>
+                      <td>
+                        {i === 0 && <span className="tag hot-u">QH,min in</span>}
+                        {i === pt.boundaries.length - 1 && <span className="tag cold-u">QC,min out</span>}
+                        {isPinch && <span className="tag pinch">Pinch</span>}
                       </td>
-                    )}
-                    <td className="r strong">{num(c.p(pt.feasible[i]))}</td>
-                    <td>
-                      {i === 0 && <span className="tag hot-u">QH,min in</span>}
-                      {i === pt.boundaries.length - 1 && <span className="tag cold-u">QC,min out</span>}
-                      {isPinch && <span className="tag pinch">Pinch</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="cascade-fig"><CascadeDiagram pt={pt} c={c} /></div>
         </div>
         <div className="summary-line">
           <span>QH,min = <b>{num(c.p(pt.qhMin))} {c.pUnit}</b></span>
