@@ -20,6 +20,8 @@ interface Props {
 type Pick = { kind: 'loop' | 'path'; index: number } | null;
 
 const LOOP_COLOR = '#4b3cc0';
+/** Heat across the pinch is expected after evolution (it is what the extra utility pays for), so it is not flagged on this grid. */
+const PINCH_NOTE = /across the pinch|below the pinch|above the pinch/;
 const PATH_COLOR = '#eb6834';
 
 export function EvolutionView({ project, design, analysis, net, dispatch }: Props) {
@@ -128,7 +130,7 @@ export function EvolutionView({ project, design, analysis, net, dispatch }: Prop
             </p>
           </div>
         </header>
-        <GridDiagram project={shownProject} analysis={analysis} net={shown} selected={selected} onSelect={setSelected} highlight={highlight} />
+        <GridDiagram project={shownProject} analysis={analysis} net={shown} selected={selected} onSelect={setSelected} highlight={highlight} issueFilter={(m) => !PINCH_NOTE.test(m)} />
       </section>
 
       <div className="two-col">
