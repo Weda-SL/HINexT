@@ -69,6 +69,11 @@ export interface Utility {
   tTarget: number;
   /** Operating cost, $ per kW per year */
   cost: number;
+  /**
+   * Optional upper limit on this utility's duty, kW. The targeting gives it as
+   * much as it can up to this limit; the rest passes to the next utility.
+   */
+  maxDuty?: number | null;
   /** Film coefficient, kW/(m²·K) */
   h?: number;
   /** Individual ΔT contribution, K. null/undefined = ΔTmin/2 */

@@ -257,3 +257,4 @@ input.num.calc:focus { color: var(--ink); }
 
 .cascade-fig { max-width: 820px; margin: 0 auto; }
 .cascade-svg { display: block; }
+.dtc.duty input.num { width: 90px; border-style: solid; font-weight: 600; }

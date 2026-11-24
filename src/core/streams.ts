@@ -142,6 +142,8 @@ export interface ResolvedUtility {
   tt: number;
   isothermal: boolean;
   cost: number;
+  /** User limit on duty, kW (Infinity when not set) */
+  maxDuty: number;
   h?: number;
   dtc: number;
   sTs: number;
@@ -177,6 +179,7 @@ export function resolveUtilities(
       tt: u.tTarget,
       isothermal: Math.abs(u.tSupply - u.tTarget) < EPS,
       cost: finite(u.cost) ? u.cost : 0,
+      maxDuty: finite(u.maxDuty) && u.maxDuty >= 0 ? u.maxDuty : Infinity,
       h: finite(u.h) && u.h > 0 ? u.h : undefined,
       dtc,
       sTs: shift(u.tSupply, u.kind, dtc),
