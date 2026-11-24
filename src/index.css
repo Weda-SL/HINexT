@@ -300,3 +300,7 @@ input.num.calc:focus { color: var(--ink); }
 .guide-bad summary, .guide-rules summary { cursor: pointer; }
 .guide-rules { margin-top: 14px; font-size: 13px; color: var(--ink-2); }
 .guide-rules ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }
+
+.confirm-bar { display: flex; align-items: center; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #e3b341; background: #fff8e6; border-radius: 8px; font-size: 13px; }
+.confirm-icon { color: #9a6700; font-size: 16px; }
+.confirm-msg { flex: 1; color: var(--ink); }

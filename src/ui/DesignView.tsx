@@ -29,7 +29,29 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const pc = net.pinchCounts;
 
   const remainingOf = (kind: 'hot' | 'cold') => analysis.streams.filter((s) => s.kind === kind && utilityDuty(analysis, net, s.id) > 1e-9);
-  const addRemaining = (kind: 'hot' | 'cold') => {
+  const [confirm, setConfirm] = useState<{ message: string; run: () => void } | null>(null);
+  /** Heat still unmatched on the other side's streams in the region where the utility would go */
+  const unmatchedFor = (kind: 'hot' | 'cold') => {
+    // heaters (on cold streams) go above the pinch: check hot streams above; coolers (on hot streams) go below: check cold streams below
+    if (!analysis.pt.pinches.length) return [];
+    const other = kind === 'cold' ? 'hot' : 'cold';
+    return analysis.streams
+      .filter((s) => s.kind === other)
+      .map((s) => ({ s, q: kind === 'cold' ? net.streams.get(s.id)?.remainingAbove ?? 0 : net.streams.get(s.id)?.remainingBelow ?? 0 }))
+      .filter((r) => r.q > 1e-6);
+  };
+  const guarded = (kind: 'hot' | 'cold', run: () => void) => {
+    const left = unmatchedFor(kind);
+    if (!left.length) return run();
+    const list = left.map((r) => `${r.s.name} (${num(c.p(r.q))} ${c.pUnit})`).join(', ');
+    const message =
+      kind === 'cold'
+        ? `Hot streams above the pinch still have heat to give: ${list}. Match them with cold streams first; otherwise the heaters take duty that process heat could cover and that heat ends up crossing the pinch or going to cooling.`
+        : `Cold streams below the pinch still need heat: ${list}. Match them with hot streams first; otherwise the coolers remove heat these streams could use and they need heating below the pinch.`;
+    setConfirm({ message, run });
+  };
+  const addRemaining = (kind: 'hot' | 'cold') => guarded(kind, () => addRemainingNow(kind));
+  const addRemainingNow = (kind: 'hot' | 'cold') => {
     const extra = remainingOf(kind).map((s) => utilityUnitFor(analysis, net, s.id)).filter((u) => u !== null);
     if (!extra.length) return;
     const what = kind === 'cold' ? 'heater' : 'cooler';
@@ -93,11 +115,23 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           onAddUtility={(sid) => {
             const u = utilityUnitFor(analysis, net, sid);
             if (u) {
-              dispatch({ type: 'unit/add', unit: u, label: `Add ${u.kind} on ${streams.get(sid)?.name}` });
-              setSelected(u.id);
+              guarded(streams.get(sid)!.kind, () => {
+                dispatch({ type: 'unit/add', unit: u, label: `Add ${u.kind} on ${streams.get(sid)?.name}` });
+                setSelected(u.id);
+              });
             }
           }}
         />
+        {confirm && (
+          <div className="confirm-bar" role="alertdialog">
+            <span className="confirm-icon">⚠</span>
+            <span className="confirm-msg">{confirm.message}</span>
+            <div className="btn-row">
+              <button className="btn small" onClick={() => setConfirm(null)}>Cancel</button>
+              <button className="btn small primary" onClick={() => { confirm.run(); setConfirm(null); }}>Add anyway</button>
+            </div>
+          </div>
+        )}
       </section>
 
       <GuidePanel
