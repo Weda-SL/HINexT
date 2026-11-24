@@ -118,6 +118,38 @@ export interface Settings {
   sweep: { min: number; max: number; steps: number };
 }
 
+export type UnitKind = 'exchanger' | 'heater' | 'cooler';
+
+/**
+ * A heat exchanger, heater or cooler in the network (inputs only).
+ * - exchanger: hot = hot stream id, cold = cold stream id
+ * - heater: cold = cold stream id, utility = hot utility id
+ * - cooler: hot = hot stream id, utility = cold utility id
+ * x orders units along the streams: 0 = left (hot end) … 1 = right (cold end).
+ * The pinch sits at x = 0.5. Hot streams flow left → right, cold streams right → left.
+ */
+export interface NetUnit {
+  id: string;
+  kind: UnitKind;
+  hot?: string;
+  cold?: string;
+  utility?: string;
+  /** kW */
+  load: number;
+  x: number;
+}
+
+export interface Network {
+  units: NetUnit[];
+}
+
+/** One saved step of network evolution (a snapshot of the units). */
+export interface EvolutionStep {
+  id: string;
+  label: string;
+  units: NetUnit[];
+}
+
 export const SCHEMA_VERSION = 1 as const;
 
 export interface Project {
@@ -129,4 +161,8 @@ export interface Project {
   utilities: Utility[];
   settings: Settings;
   economics: Economics;
+  /** Heat exchanger network designed in Stage 1B (optional; older files have none) */
+  network?: Network;
+  /** Evolution history (Stage 1C) */
+  evolution?: EvolutionStep[];
 }
