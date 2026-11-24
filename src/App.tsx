@@ -176,7 +176,7 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        HINexT {APP_VERSION} · Stage 1 (targeting, MER design, evolution) · MIT licence · Projects are saved in this browser only; use Save for a .pinch file.
+        HINexT {APP_VERSION} | MIT licence | © Weda 2026
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>
