@@ -8,8 +8,6 @@ const INK2 = '#52514e';
 const RULE = '#b5b3ad';
 const NEG = '#b42318';
 const PINCH = '#4b3cc0';
-const HOT = '#e34948';
-const COLD = '#2a78d6';
 const FONT = 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
 
 /**
@@ -47,11 +45,7 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
       ))}
       {colX.map((x, k) => (
         <g key={`u${k}`}>
-          {k === 1 ? (
-            <Pill x={x} y={31} text={`QH,min = ${num(c.p(startFlow[k]))} ${c.pUnit}`} bg="#fff0e8" fg="#a8461c" />
-          ) : (
-            <text x={x} y={36} fontSize="12" fill={HOT} textAnchor="middle">Hot utility {num(c.p(startFlow[k]))} {c.pUnit}</text>
-          )}
+          <Pill x={x} y={31} text={k === 1 ? `QH,min = ${num(c.p(startFlow[k]))} ${c.pUnit}` : `Hot utility ${num(c.p(startFlow[k]))} ${c.pUnit}`} bg="#fff0e8" fg="#a8461c" />
           <line x1={x} x2={x} y1={42} y2={y(0) - 2} stroke={INK} strokeWidth="1.4" markerEnd="url(#cas-arrow)" />
         </g>
       ))}
@@ -94,11 +88,7 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
       {colX.map((x, k) => (
         <g key={`c${k}`}>
           <line x1={x} x2={x} y1={y(n - 1)} y2={y(n - 1) + 30} stroke={INK} strokeWidth="2.2" markerEnd="url(#cas-arrow)" />
-          {k === 1 ? (
-            <Pill x={x} y={y(n - 1) + 46} text={`QC,min = ${num(c.p(flows[k][n - 1]))} ${c.pUnit}`} bg="#e5f6ef" fg="#12734f" />
-          ) : (
-            <text x={x} y={y(n - 1) + 50} fontSize="12" fill={COLD} textAnchor="middle">Cold utility {num(c.p(flows[k][n - 1]))} {c.pUnit}</text>
-          )}
+          <Pill x={x} y={y(n - 1) + 46} text={k === 1 ? `QC,min = ${num(c.p(flows[k][n - 1]))} ${c.pUnit}` : `Cold utility ${num(c.p(flows[k][n - 1]))} ${c.pUnit}`} bg="#e5f6ef" fg="#12734f" />
         </g>
       ))}
     </svg>
