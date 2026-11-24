@@ -43,9 +43,11 @@ export function GuidePanel({ project, analysis, net, onAdd, section, summary }: 
           const h = above ? pc.aboveHot : pc.belowHot;
           const k = above ? pc.aboveCold : pc.belowCold;
           const ok = above ? h <= k : h >= k;
+          // only shown when it fails: then a stream has to be split
+          if (ok) return null;
           return (
-            <p className={`hint ${ok ? '' : 'warn'}`}>
-              Number rule at the pinch: {h} hot {above ? '≤' : '≥'} {k} cold {ok ? '✓' : `✗ — split a ${above ? 'cold' : 'hot'} stream (splitting comes next)`}
+            <p className="hint warn">
+              {h} hot and {k} cold streams at the pinch: split a {above ? 'cold' : 'hot'} stream (splitting comes next).
             </p>
           );
         })()}
