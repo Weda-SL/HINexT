@@ -86,7 +86,17 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   for (const i of net.issues) if (i.unit && issueLevel.get(i.unit) !== 'error') issueLevel.set(i.unit, i.level);
 
   const W = 1100;
-  const L = 190;
+  // a column for branch CPs between the stream CP and the lines, when any stream is split
+  const splitsEarly = splitMap(project);
+  const pillW = (txt: string) => Math.max(24, txt.length * 6.4 + 12);
+  const branchTxt = (s: ResolvedStream, f: number) => (s.nonlinear ? `${num(f * 100)}%` : num(c.p(s.cp * f)));
+  const branchCol = (s: ResolvedStream, reg: 'above' | 'below') => {
+    const fr = splitsEarly.get(`${s.id}|${reg}`);
+    return fr ? Math.max(...fr.map((f) => pillW(branchTxt(s, f)))) : 0;
+  };
+  const colsOf = (s: ResolvedStream) => (['above', 'below'] as const).reduce((t, r) => t + (branchCol(s, r) ? branchCol(s, r) + 6 : 0), 0);
+  const COLS = Math.max(0, ...rows.map(colsOf));
+  const L = 190 + COLS;
   const R = 150;
   const top = 58;
   const rowH = 54;
@@ -224,7 +234,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
         </defs>
 
         {/* header */}
-        <text x={L - 10} y={26} fontSize="11.5" fill={INK2} textAnchor="end">Stream · CP ({c.cpUnit})</text>
+        <text x={L - 10 - COLS} y={26} fontSize="11.5" fill={INK2} textAnchor="end">Stream · CP ({c.cpUnit})</text>
         {pinch !== undefined && (
           <g>
             <line x1={px(PINCH_X)} x2={px(PINCH_X)} y1={34} y2={H - 26} stroke={PINCH} strokeWidth="1.6" strokeDasharray="7 5" />
@@ -277,7 +287,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               {(() => {
                 const cpText = s.nonlinear ? 'varies' : num(c.p(s.cp));
                 const pw = Math.max(26, cpText.length * 6.6 + 14);
-                const right = L - 10;
+                const right = L - 10 - COLS;
                 return (
                   <>
                     <text
@@ -302,15 +312,23 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                     <text x={right - pw / 2} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
                       {cpText}
                     </text>
-                    {/* branch CPs: purple pills just below and right of the stream's CP, one per branch, level with its line */}
-                    {(['above', 'below'] as const)
-                      .filter((reg) => branchesOf(s.id, reg))
-                      .map((reg, li) =>
+                    {/* branch CPs: purple pills in a column right of the stream's CP, each level with its branch line */}
+                    {(() => {
+                      let x0 = right + 6;
+                      return (['above', 'below'] as const)
+                        .filter((reg) => branchesOf(s.id, reg))
+                        .map((reg) => {
+                          const colW = branchCol(s, reg);
+                          const xl = x0;
+                          x0 += colW + 6;
+                          return { reg, colW, xl };
+                        });
+                    })().map(({ reg, colW, xl }) =>
                         branchesOf(s.id, reg)!.map((f, k) => {
-                          const txt = s.nonlinear ? `${num(f * 100)}%` : num(c.p(s.cp * f));
-                          const w = Math.max(24, txt.length * 6.4 + 12);
-                          const xr = right + 8 + li * (w + 4);
-                          const yb = y + (k === 0 ? 17 : k * BR);
+                          const txt = branchTxt(s, f);
+                          const w = colW;
+                          const xr = xl + w;
+                          const yb = y + k * BR;
                           return (
                             <g key={`${reg}-${k}`}>
                               <title>{`Branch ${k + 1}${hasPinch ? ` ${reg} the pinch` : ''}: ${s.nonlinear ? txt + ' of the flow' : 'CP ' + txt}`}</title>
