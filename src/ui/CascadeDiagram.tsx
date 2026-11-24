@@ -47,7 +47,9 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
       ))}
       {colX.map((x, k) => (
         <g key={`u${k}`}>
-          <text x={x} y={36} fontSize="12" fill={HOT} textAnchor="middle">Hot utility {num(c.p(startFlow[k]))} {c.pUnit}</text>
+          <text x={x} y={36} fontSize="12" fontWeight={k === 1 ? 700 : 400} fill={HOT} textAnchor="middle">
+            {k === 1 ? `QH,min = ${num(c.p(startFlow[k]))} ${c.pUnit}` : `Hot utility ${num(c.p(startFlow[k]))} ${c.pUnit}`}
+          </text>
           <line x1={x} x2={x} y1={42} y2={y(0) - 2} stroke={INK} strokeWidth="1.4" markerEnd="url(#cas-arrow)" />
         </g>
       ))}
@@ -90,7 +92,9 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
       {colX.map((x, k) => (
         <g key={`c${k}`}>
           <line x1={x} x2={x} y1={y(n - 1)} y2={y(n - 1) + 30} stroke={INK} strokeWidth="2.2" markerEnd="url(#cas-arrow)" />
-          <text x={x} y={y(n - 1) + 50} fontSize="12" fill={COLD} textAnchor="middle">Cold utility {num(c.p(flows[k][n - 1]))} {c.pUnit}</text>
+          <text x={x} y={y(n - 1) + 50} fontSize="12" fontWeight={k === 1 ? 700 : 400} fill={COLD} textAnchor="middle">
+            {k === 1 ? `QC,min = ${num(c.p(flows[k][n - 1]))} ${c.pUnit}` : `Cold utility ${num(c.p(flows[k][n - 1]))} ${c.pUnit}`}
+          </text>
         </g>
       ))}
     </svg>

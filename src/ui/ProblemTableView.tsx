@@ -105,9 +105,7 @@ export function ProblemTableView({ project, analysis, part }: { project: Project
                       )}
                       <td className="r strong">{num(c.p(pt.feasible[i]))}</td>
                       <td>
-                        {i === 0 && <span className="tag hot-u">QH,min in</span>}
-                        {i === pt.boundaries.length - 1 && <span className="tag cold-u">QC,min out</span>}
-                        {isPinch && <span className="tag pinch">Pinch</span>}
+                            {isPinch && <span className="tag pinch">Pinch</span>}
                       </td>
                     </tr>
                   );
