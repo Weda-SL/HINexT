@@ -100,7 +100,7 @@ export const EXAMPLES: Example[] = [
   {
     key: 'kemp-4-mer',
     title: 'Four-stream problem with its MER network (Kemp)',
-    source: 'As above, with the MER design from the pinch design method (6 units, QH = 20 kW, QC = 60 kW). Use it to try network evolution.',
+    source: 'As above, with the MER design from the pinch design method (6 units, QH = 20 kW, QC = 60 kW). Use it to try network optimization on the Optimization tab (loops and utility paths).',
     published: { dtMin: 10, qh: 20, qc: 60, hotPinch: 90, coldPinch: 80 },
     build: () => {
       const base = EXAMPLES[0].build();
