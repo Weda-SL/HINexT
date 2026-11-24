@@ -226,24 +226,20 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
 
       <section className="card">
         <h2>Design vs targets</h2>
-        <table className="grid-table data compare">
-          <thead>
-            <tr>
-              <th />
-              <th className="r">Design</th>
-              <th className="r">Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.label}>
-                <td>{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</td>
-                <td className="r strong">{r.design}</td>
-                <td className="r">{r.target}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="compare-cards">
+          {rows.map((r) => {
+            const over = r.diff !== undefined && Number.isFinite(r.diff) && r.diff > 1e-6;
+            return (
+              <div key={r.label} className="compare-card">
+                <div className="cc-title">{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</div>
+                <div className="cc-vals">
+                  <div><span className="cc-k">Design</span><span className={`cc-v ${over ? 'warn' : ''}`}>{r.design}</span></div>
+                  <div><span className="cc-k">Target</span><span className="cc-t">{r.target}</span></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <p className={`hint ${net.complete ? '' : 'warn'}`}>
           {net.complete
             ? 'All stream duties are met.'
