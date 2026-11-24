@@ -53,18 +53,6 @@ export function AppMenu({ onNew, onFile, onSave, onShare, onReport, onExample }:
             <span className="menu-title">Open a file…</span>
             <span className="menu-sub">.pinch project from this computer</span>
           </button>
-          <button role="menuitem" className="menu-item" onClick={() => pick(onSave)}>
-            <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
-            <span className="menu-sub">Download this project as a .pinch file</span>
-          </button>
-          <button role="menuitem" className="menu-item" onClick={() => pick(onReport)}>
-            <span className="menu-title">Export as PDF</span>
-            <span className="menu-sub">Full report: data, targets, curves, design and optimization steps</span>
-          </button>
-          <button role="menuitem" className="menu-item" onClick={() => pick(onShare)}>
-            <span className="menu-title">Share link…</span>
-            <span className="menu-sub">The project packed into a link; nothing is uploaded</span>
-          </button>
           <div className="submenu-root" onPointerEnter={() => setSub(true)} onPointerLeave={() => setSub(false)}>
             <button
               role="menuitem"
@@ -95,6 +83,18 @@ export function AppMenu({ onNew, onFile, onSave, onShare, onReport, onExample }:
               </div>
             )}
           </div>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onSave)}>
+            <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
+            <span className="menu-sub">Download this project as a .pinch file</span>
+          </button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onReport)}>
+            <span className="menu-title">Export as PDF</span>
+            <span className="menu-sub">Full report: data, targets, curves, design and optimization steps</span>
+          </button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onShare)}>
+            <span className="menu-title">Share link…</span>
+            <span className="menu-sub">The project packed into a link; nothing is uploaded</span>
+          </button>
         </div>
       )}
     </div>
