@@ -4,7 +4,7 @@
  */
 import type { NetUnit, Project } from './types';
 import type { Analysis } from './analyse';
-import { analyseNetwork } from './network';
+import { analyseNetwork, branchIndex, regionOf, splitMap } from './network';
 
 export interface Shift {
   /** unit id → +1 or −1: the unit's load changes by sign · x */
@@ -25,10 +25,32 @@ export interface UtilityPath extends Shift {
 const MAX_LENGTH = 14;
 const MAX_FOUND = 300;
 
+/** The two nodes a unit connects. */
+export type Ends = (u: NetUnit) => [string, string];
+
 function endpoints(u: NetUnit): [string, string] {
   if (u.kind === 'exchanger') return [u.hot!, u.cold!];
   if (u.kind === 'heater') return [u.utility!, u.cold!];
   return [u.hot!, u.utility!];
+}
+
+/**
+ * Nodes for a network with stream splits: each branch of a split is its own
+ * node ("s1#2"), since every branch has its own heat balance. Loops and paths
+ * then shift load within a branch, never between branches.
+ */
+export function endsFor(project: Project, hasPinch: boolean): Ends {
+  const splits = splitMap(project);
+  if (!splits.size) return endpoints;
+  const node = (stream: string, u: NetUnit, kind: 'hot' | 'cold') => {
+    const fr = splits.get(`${stream}|${regionOf(u.x, hasPinch)}`);
+    return fr ? `${stream}#${branchIndex(u, kind, fr.length) + 1}` : stream;
+  };
+  return (u) => {
+    if (u.kind === 'exchanger') return [node(u.hot!, u, 'hot'), node(u.cold!, u, 'cold')];
+    if (u.kind === 'heater') return [u.utility!, node(u.cold!, u, 'cold')];
+    return [node(u.hot!, u, 'hot'), u.utility!];
+  };
 }
 
 function activeUnits(units: NetUnit[]): NetUnit[] {
@@ -36,7 +58,7 @@ function activeUnits(units: NetUnit[]): NetUnit[] {
 }
 
 /** Euler's network theorem: independent loops L = U − N + S. */
-export function loopCount(units: NetUnit[]): { loops: number; units: number; nodes: number; components: number } {
+export function loopCount(units: NetUnit[], ends: Ends = endpoints): { loops: number; units: number; nodes: number; components: number } {
   const act = activeUnits(units);
   const nodes = new Set<string>();
   const parent = new Map<string, string>();
@@ -48,7 +70,7 @@ export function loopCount(units: NetUnit[]): { loops: number; units: number; nod
     return a;
   };
   for (const u of act) {
-    const [a, b] = endpoints(u);
+    const [a, b] = ends(u);
     for (const n of [a, b]) {
       if (!nodes.has(n)) {
         nodes.add(n);
@@ -61,14 +83,14 @@ export function loopCount(units: NetUnit[]): { loops: number; units: number; nod
   return { loops: act.length - nodes.size + comps, units: act.length, nodes: nodes.size, components: comps };
 }
 
-function adjacency(units: NetUnit[]) {
+function adjacency(units: NetUnit[], ends: Ends = endpoints) {
   const adj = new Map<string, { edge: string; to: string }[]>();
   const add = (a: string, e: string, b: string) => {
     if (!adj.has(a)) adj.set(a, []);
     adj.get(a)!.push({ edge: e, to: b });
   };
   for (const u of activeUnits(units)) {
-    const [a, b] = endpoints(u);
+    const [a, b] = ends(u);
     add(a, u.id, b);
     add(b, u.id, a);
   }
@@ -82,8 +104,8 @@ function alternate(edges: string[]): Map<string, 1 | -1> {
 }
 
 /** Every simple loop in the network (cycles of units), shortest first. */
-export function findLoops(units: NetUnit[]): Loop[] {
-  const adj = adjacency(units);
+export function findLoops(units: NetUnit[], ends: Ends = endpoints): Loop[] {
+  const adj = adjacency(units, ends);
   const order = [...adj.keys()].sort();
   const rank = new Map(order.map((n, i) => [n, i]));
   const seen = new Set<string>();
@@ -122,8 +144,8 @@ export function findLoops(units: NetUnit[]): Loop[] {
 }
 
 /** Every simple path from a hot utility to a cold utility through the network, shortest first. */
-export function findPaths(units: NetUnit[], project: Project): UtilityPath[] {
-  const adj = adjacency(units);
+export function findPaths(units: NetUnit[], project: Project, ends: Ends = endpoints): UtilityPath[] {
+  const adj = adjacency(units, ends);
   const hotU = new Set(project.utilities.filter((u) => u.kind === 'hot').map((u) => u.id));
   const coldU = new Set(project.utilities.filter((u) => u.kind === 'cold').map((u) => u.id));
   const out: UtilityPath[] = [];
@@ -182,7 +204,7 @@ export function breakLoop(units: NetUnit[], loop: Shift): { signs: Map<string, 1
 
 /** Smallest ΔT of one unit (or of every unit) in a network. */
 function minDt(project: Project, analysis: Analysis, units: NetUnit[], unitId?: string): number {
-  const net = analyseNetwork({ ...project, network: { units } }, analysis);
+  const net = analyseNetwork({ ...project, network: { ...project.network, units } }, analysis);
   let m = Infinity;
   for (const r of net.units) {
     if (r.load <= 0) continue;

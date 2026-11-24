@@ -3,7 +3,7 @@ import type { NetUnit, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { analyseNetwork, unitName, unitTags, type NetworkResult } from '../core/network';
-import { applyShift, breakLoop, findLoops, findPaths, loopCount, maxShift, solveShift, type Loop, type UtilityPath } from '../core/evolution';
+import { applyShift, breakLoop, endsFor, findLoops, findPaths, loopCount, maxShift, solveShift, type Loop, type UtilityPath } from '../core/evolution';
 import { GridDiagram } from './GridDiagram';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
@@ -26,15 +26,20 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
   const tags = unitTags(project.network?.units ?? []);
-  const nodeName = (id: string) => streams.get(id)?.name ?? utils.get(id)?.name ?? id;
+  const nodeName = (id: string) => {
+    const [sid, b] = id.split('#');
+    const n = streams.get(sid)?.name ?? utils.get(sid)?.name ?? sid;
+    return b ? `${n} (branch ${b})` : n;
+  };
+  const ends = useMemo(() => endsFor(project, analysis.pt.pinches.length > 0), [project, analysis]);
   const unitLabel = (id: string) => {
     const u = units.find((v) => v.id === id);
     return u ? unitName(u, streams, utils, tags) : id;
   };
 
-  const lc = loopCount(units);
-  const loops = useMemo(() => findLoops(units), [units]);
-  const paths = useMemo(() => findPaths(units, project), [units, project]);
+  const lc = loopCount(units, ends);
+  const loops = useMemo(() => findLoops(units, ends), [units, ends]);
+  const paths = useMemo(() => findPaths(units, project, ends), [units, project, ends]);
   const [pick, setPick] = useState<Pick>(null);
   const [x, setX] = useState(0);
   const [solveFor, setSolveFor] = useState<string>('');
@@ -61,12 +66,12 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
 
   const preview: NetUnit[] | null = item && signs ? applyShift(units, signs, x) : null;
   const previewNet = useMemo(
-    () => (preview ? analyseNetwork({ ...project, network: { units: preview } }, analysis) : null),
+    () => (preview ? analyseNetwork({ ...project, network: { ...project.network, units: preview } }, analysis) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(preview), project, analysis],
   );
   const shown = previewNet ?? net;
-  const shownProject = preview ? { ...project, network: { units: preview } } : project;
+  const shownProject = preview ? { ...project, network: { ...project.network, units: preview } } : project;
   const xMax = item && signs ? maxShift(units, signs) : 0;
 
   const highlight = item && signs ? { units: new Map([...signs].filter(([id]) => preview?.some((u) => u.id === id) ?? true)), color: item.kind === 'loop' ? LOOP_COLOR : PATH_COLOR } : undefined;
@@ -87,7 +92,7 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   const historyRows = useMemo(
     () =>
       history.map((h) => {
-        const n = analyseNetwork({ ...project, network: { units: h.units } }, analysis);
+        const n = analyseNetwork({ ...project, network: { ...project.network, units: h.units } }, analysis);
         return { h, n };
       }),
     [history, project, analysis],
@@ -95,13 +100,6 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
 
   if (!units.length) {
     return <section className="card empty-card">Design a network on the HEN design tab first. Evolution then simplifies it by breaking loops and relaxing along utility paths.</section>;
-  }
-  if (project.network?.splits?.length) {
-    return (
-      <section className="card empty-card">
-        This network has split streams. Evolution (loops, utility paths and relaxing) does not handle splits yet; remove the splits on the HEN design tab to evolve the network.
-      </section>
-    );
   }
 
   return (
@@ -111,7 +109,7 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
           <div>
             <h2>Network {preview ? '(preview)' : ''}</h2>
             <p className="muted">
-              Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
+              Euler's theorem: loops L = U − N + S = {lc.units} − {lc.nodes} + {lc.components} = <b>{lc.loops}</b>{project.network?.splits?.length ? ' (each branch of a split stream counts as its own node, since its share of the flow is fixed)' : ''}. Pick a loop or a utility path below; the units it shifts are ringed and marked +x / −x. The grid shows the network with the current x until you apply it.
             </p>
           </div>
         </header>
@@ -167,7 +165,19 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
                   x, {c.pUnit}
                   <NumberField ariaLabel="Shift x" value={c.p(x)} onCommit={(v) => Number.isFinite(v) && v >= 0 && setX(Math.min(c.pIn(v), xMax))} />
                 </label>
-                <span className="muted small">max {num(c.p(xMax))}</span>
+                {Number.isFinite(xMax) && xMax > 0 && (
+                  <input
+                    type="range"
+                    className="x-slider"
+                    aria-label="Drag x"
+                    min={0}
+                    max={xMax}
+                    step={xMax / 400}
+                    value={Math.min(x, xMax)}
+                    onChange={(e) => setX(+e.target.value)}
+                  />
+                )}
+                <span className="muted small">max {Number.isFinite(xMax) ? num(c.p(xMax)) : '—'}</span>
                 {item.kind === 'loop' && <button className="btn small" onClick={() => setX(brk!.x)}>Remove smallest unit</button>}
               </div>
               {item.kind === 'path' && (

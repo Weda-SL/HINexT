@@ -379,3 +379,4 @@ g:hover > .unit-del { stroke: #6b7280; }
 .topbar { padding-left: 12px; }
 .toolbar.toolbar-left { margin-left: 0; }
 .topbar { padding-left: 16px; }
+.x-slider { flex: 1; min-width: 160px; accent-color: #4b3cc0; }
