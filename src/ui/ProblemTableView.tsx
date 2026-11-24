@@ -99,7 +99,7 @@ function StreamArrows({ analysis }: { analysis: Analysis }) {
     return best;
   };
   const streams = [...analysis.streams.filter((s) => s.kind === 'hot'), ...analysis.streams.filter((s) => s.kind === 'cold')];
-  const COL = 30;
+  const COL = 34;
   const W = Math.max(60, streams.length * COL + 10);
   const H = (b.length - 1) * ROW;
   return (
@@ -129,9 +129,12 @@ function StreamArrows({ analysis }: { analysis: Analysis }) {
           <g key={s.id}>
             <title>{`${s.name}: ${s.kind === 'hot' ? 'hot' : 'cold'}, ${num(s.sTs)} → ${num(s.sTt)} (shifted)`}</title>
             <line x1={x} x2={x} y1={from} y2={to} stroke={color} strokeWidth="3" strokeLinecap="round" markerEnd={`url(#sa-${s.kind})`} />
-            <text x={x + 6} y={top + len / 2} fontSize="11" fontWeight="600" fill={color} transform={`rotate(-90 ${x + 6} ${top + len / 2})`} textAnchor="middle" dominantBaseline="hanging">
-              {s.name}
-            </text>
+            <g transform={`rotate(-90 ${x} ${top + len / 2})`}>
+              <rect x={x - (s.name.length * 6.4 + 10) / 2} y={top + len / 2 - 8} width={s.name.length * 6.4 + 10} height={16} rx={3} fill="#fff" stroke={color} strokeWidth="1" />
+              <text x={x} y={top + len / 2 + 0.5} fontSize="11" fontWeight="600" fill={color} textAnchor="middle" dominantBaseline="middle">
+                {s.name}
+              </text>
+            </g>
           </g>
         );
       })}
