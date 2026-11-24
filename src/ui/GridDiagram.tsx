@@ -166,8 +166,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
         </defs>
 
         {/* header */}
-        <text x={L - 74} y={26} fontSize="11.5" fill={INK2} textAnchor="end">Stream</text>
-        <text x={L - 38} y={26} fontSize="11.5" fill={INK2} textAnchor="middle">CP ({c.cpUnit})</text>
+        <text x={L - 10} y={26} fontSize="11.5" fill={INK2} textAnchor="end">Stream · CP ({c.cpUnit})</text>
         {pinch !== undefined && (
           <g>
             <line x1={px(PINCH_X)} x2={px(PINCH_X)} y1={34} y2={H - 26} stroke={PINCH} strokeWidth="1.6" strokeDasharray="7 5" />
@@ -197,15 +196,22 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                   const remaining = sr ? sr.remaining : s.duty;
           return (
             <g key={s.id}>
-              <text x={L - 74} y={y + 4} fontSize="12.5" fontWeight="600" fill={color} textAnchor="end">
-                {s.name}
-              </text>
-              <g>
-                <rect x={L - 66} y={y - 10} width={56} height={20} rx={10} fill={s.kind === 'hot' ? '#fdecec' : '#e8f1fc'} />
-                <text x={L - 38} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
-                  {s.nonlinear ? 'varies' : num(c.p(s.cp))}
-                </text>
-              </g>
+              {(() => {
+                const cpText = s.nonlinear ? 'varies' : num(c.p(s.cp));
+                const pw = Math.max(26, cpText.length * 6.6 + 14);
+                const right = L - 10;
+                return (
+                  <>
+                    <text x={right - pw - 8} y={y + 4} fontSize="12.5" fontWeight="600" fill={color} textAnchor="end">
+                      {s.name}
+                    </text>
+                    <rect x={right - pw} y={y - 9} width={pw} height={18} rx={9} fill={s.kind === 'hot' ? '#fdecec' : '#e8f1fc'} />
+                    <text x={right - pw / 2} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
+                      {cpText}
+                    </text>
+                  </>
+                );
+              })()}
               <line
                 x1={s.kind === 'hot' ? x1 : x2}
                 x2={s.kind === 'hot' ? x2 - 4 : x1 + 4}
