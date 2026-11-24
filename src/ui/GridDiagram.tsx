@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NetUnit, Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
-import { PINCH_X, unitTags, type NetworkResult } from '../core/network';
+import { branchIndex, PINCH_X, regionOf, splitMap, unitTags, type NetworkResult, type Region } from '../core/network';
 import type { ResolvedStream } from '../core/streams';
 import { conv, num } from './format';
 import { DownloadMenu, saveSvgFile, saveSvgPdf, saveSvgPng } from './svgExport';
@@ -32,7 +32,11 @@ interface Props {
   selected: string | null;
   onSelect: (id: string | null) => void;
   /** Create a match between two streams at position x (undefined = read-only) */
-  onMatch?: (hot: string, cold: string, x: number) => void;
+  onMatch?: (hot: string, cold: string, x: number, hotBranch?: number, coldBranch?: number) => void;
+  /** Click on a stream's name (to edit its splits) */
+  onStreamClick?: (stream: string) => void;
+  /** Stream whose name is highlighted (being edited) */
+  selectedStream?: string | null;
   onMove?: (id: string, x: number) => void;
   onAddUtility?: (stream: string) => void;
   /** Side of the pinch being worked on; the other side is muted (only used when there is a pinch) */
@@ -64,10 +68,10 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, section, onSection, actions, utilityDuty, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onStreamClick, selectedStream, onMove, onAddUtility, onDelete, section, onSection, actions, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
-  const [pending, setPending] = useState<{ stream: string; x: number } | null>(null);
+  const [pending, setPending] = useState<{ stream: string; x: number; branch?: number } | null>(null);
   const [drag, setDrag] = useState<{ id: string; x: number } | null>(null);
   const units = project.network?.units ?? [];
   const pinch = analysis.pt.pinches[0];
@@ -87,8 +91,31 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const top = 58;
   const rowH = 54;
   const gap = hots.length && colds.length ? 22 : 0;
-  const yRow = (i: number) => top + i * rowH + (i >= hots.length ? gap : 0);
-  const H = yRow(Math.max(0, rows.length - 1)) + 70;
+  // split streams: branches drawn below the main line, BR apart; the row grows to fit them
+  const BR = 18;
+  const splits = splitMap(project);
+  const hasPinch = pinch !== undefined;
+  const branchesOf = (sid: string, reg: Region) => splits.get(`${sid}|${reg}`);
+  const extraOf = (sid: string) => Math.max(0, ...(['above', 'below'] as const).map((r) => ((branchesOf(sid, r)?.length ?? 1) - 1) * BR));
+  const rowTop: number[] = [];
+  {
+    let y = top;
+    rows.forEach((r, i) => {
+      if (i === hots.length && i > 0) y += gap;
+      rowTop.push(y);
+      y += rowH + extraOf(r.id);
+    });
+  }
+  const yRow = (i: number) => rowTop[i] ?? top;
+  const lastRow = rows.length - 1;
+  const H = (rows.length ? yRow(lastRow) + extraOf(rows[lastRow].id) : top) + 70;
+  /** y of a unit's connection on a stream (its branch line when the stream is split there) */
+  const unitY = (u: NetUnit, sid: string, kind: 'hot' | 'cold') => {
+    const row = rowOf.get(sid);
+    if (row === undefined) return undefined;
+    const fr = branchesOf(sid, regionOf(unitX(u), hasPinch));
+    return yRow(row) + (fr ? branchIndex(u, kind, fr.length) * BR : 0);
+  };
   const px = (x: number) => L + x * (W - L - R);
   const ix = (p: number) => Math.min(0.98, Math.max(0.02, (p - L) / (W - L - R)));
 
@@ -116,27 +143,29 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
 
   const sections = pinch !== undefined && !!onSection;
   const sideOf = (x: number): 'above' | 'below' => (x < PINCH_X ? 'above' : 'below');
-  const clickStream = (s: ResolvedStream, e: React.MouseEvent) => {
+  const clickStream = (s: ResolvedStream, e: React.MouseEvent, branch?: number) => {
     if (!onMatch) return;
     e.stopPropagation();
     const x = ix(toLocal(e));
     if (sections && !pending) onSection!(sideOf(x));
     if (!pending) {
-      setPending({ stream: s.id, x });
+      setPending({ stream: s.id, x, branch });
       return;
     }
     if (pending.stream === s.id) {
-      setPending(null);
+      setPending(pending.branch === branch ? null : { stream: s.id, x, branch });
       return;
     }
     const first = byId.get(pending.stream)!;
     if (first.kind === s.kind) {
-      setPending({ stream: s.id, x });
+      setPending({ stream: s.id, x, branch });
       return;
     }
     const hot = first.kind === 'hot' ? first.id : s.id;
     const cold = first.kind === 'cold' ? first.id : s.id;
-    onMatch(hot, cold, pending.x);
+    const hb = first.kind === 'hot' ? pending.branch : branch;
+    const cb = first.kind === 'cold' ? pending.branch : branch;
+    onMatch(hot, cold, pending.x, hb, cb);
     setPending(null);
   };
 
@@ -251,13 +280,37 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 const right = L - 10;
                 return (
                   <>
-                    <text x={right - pw - 8} y={y + 4} fontSize="12.5" fontWeight="600" fill={color} textAnchor="end">
+                    <text
+                      x={right - pw - 8}
+                      y={y + 4}
+                      fontSize="12.5"
+                      fontWeight={selectedStream === s.id ? 800 : 600}
+                      fill={color}
+                      textAnchor="end"
+                      textDecoration={selectedStream === s.id ? 'underline' : undefined}
+                      style={onStreamClick ? { cursor: 'pointer' } : undefined}
+                      onClick={(e) => {
+                        if (!onStreamClick) return;
+                        e.stopPropagation();
+                        onStreamClick(s.id);
+                      }}
+                    >
+                      <title>{onStreamClick ? 'Click to split this stream' : s.name}</title>
                       {s.name}
                     </text>
                     <rect x={right - pw} y={y - 9} width={pw} height={18} rx={9} fill={s.kind === 'hot' ? '#fdecec' : '#e8f1fc'} />
                     <text x={right - pw / 2} y={y + 4} fontSize="11" fontWeight="600" fill={s.kind === 'hot' ? '#a32625' : '#1d5aa6'} textAnchor="middle">
                       {cpText}
                     </text>
+                    {/* branch CPs of each split, listed under the name in branch order (top to bottom) */}
+                    {(['above', 'below'] as const)
+                      .filter((reg) => branchesOf(s.id, reg))
+                      .map((reg, li) => (
+                        <text key={reg} x={right} y={y + 4 + (li + 1) * BR} fontSize="10" fill={INK2} textAnchor="end">
+                          {hasPinch ? (reg === 'above' ? 'above: ' : 'below: ') : 'split: '}
+                          {branchesOf(s.id, reg)!.map((f) => (s.nonlinear ? `${num(f * 100)}%` : num(c.p(s.cp * f)))).join(' + ')}
+                        </text>
+                      ))}
                   </>
                 );
               })()}
@@ -270,6 +323,42 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 strokeWidth={isPending ? 5 : 3}
                 markerEnd={`url(#grid-${s.kind})`}
               />
+              {/* branches of a split: parallel lines below the main one over that side of the pinch */}
+              {(['above', 'below'] as const).map((reg) => {
+                const fr = branchesOf(s.id, reg);
+                if (!fr) return null;
+                const lo = Math.max(a, !hasPinch || reg === 'above' ? 0 : PINCH_X);
+                const hi = Math.min(b, !hasPinch || reg === 'below' ? 1 : PINCH_X);
+                if (hi - lo < 1e-6) return null;
+                const xa = px(lo) + (lo === a ? 14 : 4);
+                const xb = px(hi) - (hi === b ? 14 : 4);
+                return (
+                  <g key={reg}>
+                    {fr.map((_f, k) => {
+                      const yb = y + k * BR;
+                      return (
+                        <g key={k}>
+                          {k > 0 && (
+                            <path d={`M${xa} ${y} L${xa + 8} ${yb} L${xb - 8} ${yb} L${xb} ${y}`} fill="none" stroke={color} strokeWidth={isPending && pending?.branch === k ? 4 : 2.5} strokeLinejoin="round" />
+                          )}
+                          {onMatch && k > 0 && (
+                            <rect
+                              x={xa + 8}
+                              y={yb - 7}
+                              width={Math.max(4, xb - xa - 16)}
+                              height={14}
+                              fill={isPending && pending?.branch === k ? 'rgba(75,60,192,0.08)' : canPair ? 'rgba(42,120,214,0.05)' : 'transparent'}
+                              style={{ cursor: 'crosshair' }}
+                              onClick={(e) => clickStream(s, e, k)}
+                              data-hover="1"
+                            />
+                          )}
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })}
               {/* supply / target temperatures */}
               {s.kind === 'hot' ? (
                 <>
@@ -291,12 +380,15 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                   height={28}
                   fill={isPending ? 'rgba(75,60,192,0.08)' : canPair ? 'rgba(42,120,214,0.05)' : 'transparent'}
                   style={{ cursor: 'crosshair' }}
-                  onClick={(e) => clickStream(s, e)}
+                  onClick={(e) => {
+                    const xx = ix(toLocal(e));
+                    clickStream(s, e, branchesOf(s.id, regionOf(xx, hasPinch)) ? 0 : undefined);
+                  }}
                   data-hover="1"
                 />
               )}
               {isPending && (
-                <circle cx={px(pending.x)} cy={y} r={9} fill="none" stroke={PINCH} strokeWidth="2" strokeDasharray="3 2" data-hover="1" />
+                <circle cx={px(pending.x)} cy={y + (pending.branch ?? 0) * BR} r={9} fill="none" stroke={PINCH} strokeWidth="2" strokeDasharray="3 2" data-hover="1" />
               )}
               {/* remaining duty at the stream end */}
               {sr && Math.abs(remaining) > 1e-6 && (() => {
@@ -398,11 +490,9 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             </g>
           );
           if (u.kind === 'exchanger') {
-            const hr = rowOf.get(u.hot ?? '');
-            const cr = rowOf.get(u.cold ?? '');
-            if (hr === undefined || cr === undefined) return null;
-            const yh = yRow(hr);
-            const yc = yRow(cr);
+            const yh = unitY(u, u.hot ?? '', 'hot');
+            const yc = unitY(u, u.cold ?? '', 'cold');
+            if (yh === undefined || yc === undefined) return null;
             return g(
               <>
                 <line x1={x} x2={x} y1={yh} y2={yc} stroke={stroke} strokeWidth={sel ? 2.5 : 1.5} />
@@ -416,9 +506,9 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             );
           }
           const sid = u.kind === 'heater' ? u.cold : u.hot;
-          const row = rowOf.get(sid ?? '');
-          if (row === undefined) return null;
-          const y = yRow(row);
+          const yy = unitY(u, sid ?? '', u.kind === 'heater' ? 'cold' : 'hot');
+          if (yy === undefined) return null;
+          const y = yy;
           return g(
             <>
               {circle(y, u.kind === 'heater' ? HEATER : COOLER, tags.get(u.id))}

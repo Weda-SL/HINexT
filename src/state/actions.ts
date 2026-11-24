@@ -1,4 +1,4 @@
-import type { CapitalModel, Economics, NetUnit, NonLinearProfile, Project, Settings, Stream, Utility } from '../core/types';
+import type { CapitalModel, Economics, NetUnit, Network, NonLinearProfile, Project, Settings, Stream, Utility } from '../core/types';
 import { newId, newStream, newUtility } from '../core/project';
 
 /**
@@ -26,6 +26,8 @@ export type Action =
   | { type: 'unit/update'; id: string; patch: Partial<NetUnit>; label?: string }
   | { type: 'unit/delete'; id: string }
   | { type: 'network/set'; units: NetUnit[]; label: string }
+  /** Split a stream over one side of the pinch (fractions null removes the split) */
+  | { type: 'split/set'; stream: string; side: 'above' | 'below'; fractions: number[] | null; label?: string }
   | { type: 'evolution/record'; label: string }
   | { type: 'evolution/apply'; units: NetUnit[]; label: string }
   | { type: 'evolution/restore'; index: number }
@@ -94,6 +96,8 @@ export function describe(action: Action, p: Project): string {
       return 'Delete unit';
     case 'network/set':
       return action.label;
+    case 'split/set':
+      return action.label ?? (action.fractions ? 'Split stream' : 'Remove split');
     case 'evolution/record':
       return action.label;
     case 'evolution/apply':
@@ -168,25 +172,47 @@ export function apply(p: Project, action: Action): Project {
     case 'economics/capital':
       return { ...p, economics: { ...p.economics, capital: action.capital } };
     case 'unit/add':
-      return { ...p, network: { units: [...(p.network?.units ?? []), action.unit] } };
+      return withUnits(p, [...(p.network?.units ?? []), action.unit]);
     case 'unit/update':
-      return { ...p, network: { units: (p.network?.units ?? []).map((u) => (u.id === action.id ? { ...u, ...action.patch } : u)) } };
+      return withUnits(p, (p.network?.units ?? []).map((u) => (u.id === action.id ? { ...u, ...action.patch } : u)));
     case 'unit/delete':
-      return { ...p, network: { units: (p.network?.units ?? []).filter((u) => u.id !== action.id) } };
+      return withUnits(p, (p.network?.units ?? []).filter((u) => u.id !== action.id));
     case 'network/set':
-      return { ...p, network: { units: action.units } };
+      return withUnits(p, action.units);
+    case 'split/set': {
+      const others = (p.network?.splits ?? []).filter((sp) => !(sp.stream === action.stream && sp.side === action.side));
+      const old = (p.network?.splits ?? []).find((sp) => sp.stream === action.stream && sp.side === action.side);
+      const n = action.fractions?.length ?? 0;
+      const splits = action.fractions && n >= 2 ? [...others, { id: old?.id ?? newId('sp'), stream: action.stream, side: action.side, fractions: action.fractions }] : others;
+      // units on removed branches move to the last remaining branch; with no split the branch is cleared
+      const onSide = (u: NetUnit) => (action.side === 'above' ? u.x < 0.5 : u.x >= 0.5);
+      const fix = (b: number | undefined) => (n >= 2 ? (b === undefined ? undefined : Math.min(b, n - 1)) : undefined);
+      const units = (p.network?.units ?? []).map((u) => {
+        if (!onSide(u)) return u;
+        if (u.hot === action.stream && u.hotBranch !== undefined) return { ...u, hotBranch: fix(u.hotBranch) };
+        if (u.cold === action.stream && u.coldBranch !== undefined) return { ...u, coldBranch: fix(u.coldBranch) };
+        return u;
+      });
+      return { ...p, network: { units, splits } };
+    }
     case 'evolution/record':
       return { ...p, evolution: [...(p.evolution ?? []), { id: newId('ev'), label: action.label, units: structuredClone(p.network?.units ?? []) }] };
     case 'evolution/apply': {
       const start = p.evolution?.length ? p.evolution : [{ id: newId('ev'), label: 'Starting network', units: structuredClone(p.network?.units ?? []) }];
-      return { ...p, network: { units: action.units }, evolution: [...start, { id: newId('ev'), label: action.label, units: structuredClone(action.units) }] };
+      return { ...withUnits(p, action.units), evolution: [...start, { id: newId('ev'), label: action.label, units: structuredClone(action.units) }] };
     }
     case 'evolution/restore': {
       const step = p.evolution?.[action.index];
       if (!step) return p;
-      return { ...p, network: { units: structuredClone(step.units) }, evolution: p.evolution!.slice(0, action.index + 1) };
+      return { ...withUnits(p, structuredClone(step.units)), evolution: p.evolution!.slice(0, action.index + 1) };
     }
     case 'evolution/clear':
       return { ...p, evolution: [] };
   }
+}
+
+/** Replace the network's units, keeping its stream splits. */
+function withUnits(p: Project, units: NetUnit[]): Project {
+  const network: Network = { ...(p.network ?? {}), units };
+  return { ...p, network };
 }

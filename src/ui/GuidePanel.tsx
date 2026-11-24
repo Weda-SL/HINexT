@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { NetworkResult } from '../core/network';
-import { designGuide, type RegionGuide, type Suggestion } from '../core/guide';
+import { designGuide, type RegionGuide, type SplitSuggestion, type Suggestion } from '../core/guide';
 import { conv, num } from './format';
 
 interface Props {
@@ -10,17 +10,27 @@ interface Props {
   analysis: Analysis;
   net: NetworkResult;
   onAdd: (s: Suggestion) => void;
+  onSplit: (s: SplitSuggestion) => void;
   /** Design vs targets summary shown at the top */
   summary?: ReactNode;
   /** Side being worked on; the other column is muted */
   section?: 'above' | 'below' | null;
 }
 
-export function GuidePanel({ project, analysis, net, onAdd, section, summary }: Props) {
+export function GuidePanel({ project, analysis, net, onAdd, onSplit, section, summary }: Props) {
   const c = conv(project.settings.units);
   const guide = useMemo(() => designGuide(project, analysis, net), [project, analysis, net]);
   const [showAll, setShowAll] = useState(false);
-  const name = (id: string) => analysis.streams.find((s) => s.id === id)?.name ?? id;
+  const name = (id: string, branch?: number) => {
+    const n = analysis.streams.find((s) => s.id === id)?.name ?? id;
+    return branch === undefined ? n : `${n} branch ${branch + 1}`;
+  };
+  /** "s3#2" → "Cold 3 branch 2" */
+  const keyName = (k: string) => {
+    const [id, b] = k.split('#');
+    return name(id, b === undefined ? undefined : +b - 1);
+  };
+  const key = (s: Suggestion) => `${s.hot}#${s.hotBranch ?? ''}-${s.cold}#${s.coldBranch ?? ''}`;
 
   const region = (r: RegionGuide) => {
     const above = r.region === 'above';
@@ -43,27 +53,40 @@ export function GuidePanel({ project, analysis, net, onAdd, section, summary }: 
           const h = above ? pc.aboveHot : pc.belowHot;
           const k = above ? pc.aboveCold : pc.belowCold;
           const ok = above ? h <= k : h >= k;
-          // only shown when it fails: then a stream has to be split
-          if (ok) return null;
+          // only shown when it fails and no split is suggested below
+          if (ok || r.split) return null;
           return (
             <p className="hint warn">
-              {h} hot and {k} cold streams at the pinch: split a {above ? 'cold' : 'hot'} stream (splitting comes next).
+              {h} hot and {k} cold streams at the pinch: split a {above ? 'cold' : 'hot'} stream (click its name on the grid).
             </p>
           );
         })()}
+        {r.split && (
+          <div className="guide-item best split-item">
+            <div>
+              <div className="guide-title">
+                Split <span className={analysis.streams.find((x) => x.id === r.split!.stream)?.kind === 'hot' ? 'g-hot' : 'g-cold'}>{name(r.split.stream)}</span>
+                <b> · CP {r.split.cps.map((x) => num(c.p(x))).join(' + ')}</b>
+                <span className="tag pinch">suggested</span>
+              </div>
+              <div className="guide-why">{r.split.reason}</div>
+            </div>
+            <button className="btn small primary" onClick={() => onSplit(r.split!)}>Split</button>
+          </div>
+        )}
         {feasible.length > 0 && (
           <div className="guide-list">
             {(showAll ? feasible : feasible.slice(0, 3)).map((s, i) => (
-              <div key={`${s.hot}-${s.cold}`} className={`guide-item ${i === 0 ? 'best' : ''}`}>
+              <div key={key(s)} className={`guide-item ${i === 0 && !r.split ? 'best' : ''}`}>
                 <div>
                   <div className="guide-title">
-                    <span className="g-hot">{name(s.hot)}</span> → <span className="g-cold">{name(s.cold)}</span>
+                    <span className="g-hot">{name(s.hot, s.hotBranch)}</span> → <span className="g-cold">{name(s.cold, s.coldBranch)}</span>
                     <b> · {num(c.p(s.load))} {c.pUnit}</b>
-                    {i === 0 && <span className="tag pinch">suggested</span>}
+                    {i === 0 && !r.split && <span className="tag pinch">suggested</span>}
                   </div>
                   <div className="guide-why">
                     {s.pinchMatch && `Pinch match, CP ${num(c.p(s.cpHot))} ${above ? '≤' : '≥'} ${num(c.p(s.cpCold))} ✓ · `}
-                    {s.ticksOff.length ? `ticks off ${s.ticksOff.map(name).join(' and ')}` : 'partial load'} · ΔT {num(s.dt)} K
+                    {s.ticksOff.length ? `ticks off ${s.ticksOff.map(keyName).join(' and ')}` : 'partial load'} · ΔT {num(s.dt)} K
                   </div>
                 </div>
                 <button className="btn small primary" onClick={() => onAdd(s)}>Add</button>
@@ -78,8 +101,8 @@ export function GuidePanel({ project, analysis, net, onAdd, section, summary }: 
           <details className="guide-bad">
             <summary>{infeasible.length} match{infeasible.length > 1 ? 'es' : ''} to avoid</summary>
             {infeasible.map((s) => (
-              <div key={`${s.hot}-${s.cold}`} className="guide-why">
-                {name(s.hot)} → {name(s.cold)}: {s.problem}
+              <div key={key(s)} className="guide-why">
+                {name(s.hot, s.hotBranch)} → {name(s.cold, s.coldBranch)}: {s.problem}
               </div>
             ))}
           </details>

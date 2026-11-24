@@ -2,13 +2,14 @@ import { useEffect, useState, type Dispatch } from 'react';
 import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
-import { tickOffLoad, unitName, unitTags, type NetworkResult } from '../core/network';
+import { analyseNetwork, regionOf, tickOffLoad, unitName, unitTags, type NetworkResult } from '../core/network';
 import { GridDiagram } from './GridDiagram';
 import { GuidePanel } from './GuidePanel';
 import { newId } from '../core/project';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
-import { exchangerFor, utilityDuty, utilityUnitFor } from './networkHelpers';
+import { exchangerFor, utilityDuty, utilityUnitsFor } from './networkHelpers';
+import { SplitEditor } from './SplitEditor';
 
 interface Props {
   project: Project;
@@ -19,7 +20,14 @@ interface Props {
 
 export function DesignView({ project, analysis, net, dispatch }: Props) {
   const c = conv(project.settings.units);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [streamSel, setStreamSel] = useState<string | null>(null);
+  const selected = selectedUnit;
+  // a unit and a stream are never selected together
+  const setSelected = (id: string | null) => {
+    setSelectedUnit(id);
+    if (id) setStreamSel(null);
+  };
   const [section, setSection] = useState<'above' | 'below' | null>(null);
   const hasPinch = analysis.pt.pinches.length > 0;
   // clicking outside the grid (except buttons, the guide and the unit editor) leaves the side
@@ -64,7 +72,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   };
   const addRemaining = (kind: 'hot' | 'cold') => guarded(kind, () => addRemainingNow(kind));
   const addRemainingNow = (kind: 'hot' | 'cold') => {
-    const extra = remainingOf(kind).map((s) => utilityUnitFor(analysis, net, s.id)).filter((u) => u !== null);
+    const extra = remainingOf(kind).flatMap((s) => utilityUnitsFor(analysis, net, s.id));
     if (!extra.length) return;
     const what = kind === 'cold' ? 'heater' : 'cooler';
     dispatch({ type: 'network/set', units: [...units, ...extra], label: `Add ${extra.length} ${what}${extra.length > 1 ? 's' : ''} for remaining duty` });
@@ -102,8 +110,8 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           onSelect={setSelected}
           editable
           utilityDuty={(sid) => utilityDuty(analysis, net, sid)}
-          onMatch={(hot, cold, x) => {
-            const u = exchangerFor(analysis, net, hot, cold, x);
+          onMatch={(hot, cold, x, hb, cb) => {
+            const u = exchangerFor(analysis, net, hot, cold, x, hb, cb);
             dispatch({ type: 'unit/add', unit: u, label: `Add exchanger ${streams.get(hot)?.name}–${streams.get(cold)?.name}` });
             setSelected(u.id);
           }}
@@ -129,14 +137,19 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
             setSelected(null);
           }}
           onAddUtility={(sid) => {
-            const u = utilityUnitFor(analysis, net, sid);
-            if (u) {
-              guarded(streams.get(sid)!.kind, () => {
-                dispatch({ type: 'unit/add', unit: u, label: `Add ${u.kind} on ${streams.get(sid)?.name}` });
-                setSelected(u.id);
-              });
-            }
+            const add = utilityUnitsFor(analysis, net, sid);
+            if (!add.length) return;
+            guarded(streams.get(sid)!.kind, () => {
+              const what = `${add[0].kind}${add.length > 1 ? 's' : ''} on ${streams.get(sid)?.name}`;
+              dispatch({ type: 'network/set', units: [...units, ...add], label: `Add ${what}` });
+              setSelected(add[0].id);
+            });
           }}
+          onStreamClick={(sid) => {
+            setStreamSel(streamSel === sid ? null : sid);
+            setSelectedUnit(null);
+          }}
+          selectedStream={streamSel}
         />
         {confirm && (
           <div className="confirm-bar" role="alertdialog">
@@ -166,13 +179,9 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                       className="btn small"
                       title="Largest load on this side of the pinch (the smaller unmatched heat of the two streams)"
                       onClick={() => {
-                        const others = { ...net, streams: new Map(net.streams) };
                         // tick-off ignoring this unit's own load
-                        for (const id of [sel.hot!, sel.cold!]) {
-                          const sr = others.streams.get(id)!;
-                          others.streams.set(id, sel.x < 0.5 ? { ...sr, remainingAbove: sr.remainingAbove + sel.load } : { ...sr, remainingBelow: sr.remainingBelow + sel.load });
-                        }
-                        const max = tickOffLoad(others, sel.hot!, sel.cold!, sel.x);
+                        const others = analyseNetwork({ ...project, network: { ...project.network, units: units.filter((u) => u.id !== sel.id) } }, analysis, 'pinch');
+                        const max = tickOffLoad(others, sel.hot!, sel.cold!, sel.x, sel.hotBranch, sel.coldBranch);
                         dispatch({ type: 'unit/update', id: sel.id, patch: { load: +max.toFixed(6) }, label: `Tick off ${unitName(sel, streams, utils, tags)}` });
                       }}
                     >
@@ -195,6 +204,26 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                       </select>
                     </label>
                   )}
+                  {(['hot', 'cold'] as const).map((k) => {
+                    const sid = k === 'hot' ? sel.hot : sel.cold;
+                    const br = sid ? net.streams.get(sid)?.branches?.[regionOf(sel.x, net.hasPinch)] : undefined;
+                    if (!sid || !br) return null;
+                    const cur = (k === 'hot' ? sel.hotBranch : sel.coldBranch) ?? 0;
+                    return (
+                      <label key={k}>
+                        {streams.get(sid)?.name} branch
+                        <select
+                          className="field-select"
+                          value={Math.min(cur, br.length - 1)}
+                          onChange={(e) => dispatch({ type: 'unit/update', id: sel.id, patch: k === 'hot' ? { hotBranch: +e.target.value } : { coldBranch: +e.target.value }, label: 'Change branch' })}
+                        >
+                          {br.map((b, i) => (
+                            <option key={i} value={i}>{`${i + 1} (CP ${num(c.p(b.cp))})`}</option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })}
                 </div>
                 <dl className="kv kv-major">
                   <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}<span className="kv-dt" title="Temperature difference at the hot end (hot in − cold out)">ΔT {num(selRes.dtHot)} K</span></dd>
@@ -209,6 +238,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
               </div>
           </div>
         )}
+        {streamSel && !sel && <SplitEditor project={project} analysis={analysis} net={net} streamId={streamSel} dispatch={dispatch} />}
       </section>
 
       <GuidePanel
@@ -244,9 +274,15 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
         net={net}
         onAdd={(g) => {
           const id = newId('e');
-          dispatch({ type: 'unit/add', unit: { id, kind: 'exchanger', hot: g.hot, cold: g.cold, load: +g.load.toFixed(6), x: g.x }, label: `Add exchanger ${streams.get(g.hot)?.name}–${streams.get(g.cold)?.name} (guide)` });
+          dispatch({ type: 'unit/add', unit: { id, kind: 'exchanger', hot: g.hot, cold: g.cold, load: +g.load.toFixed(6), x: g.x, hotBranch: g.hotBranch, coldBranch: g.coldBranch }, label: `Add exchanger ${streams.get(g.hot)?.name}–${streams.get(g.cold)?.name} (guide)` });
           setSelected(id);
           if (hasPinch) setSection(g.region);
+        }}
+        onSplit={(sp) => {
+          dispatch({ type: 'split/set', stream: sp.stream, side: sp.region, fractions: sp.fractions, label: `Split ${streams.get(sp.stream)?.name} ${hasPinch ? `${sp.region} the pinch` : ''} (guide)`.replace('  ', ' ') });
+          if (hasPinch) setSection(sp.region);
+          setSelectedUnit(null);
+          setStreamSel(sp.stream);
         }}
         section={hasPinch ? section : null}
       />

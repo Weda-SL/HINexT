@@ -96,6 +96,13 @@ export function EvolutionView({ project, analysis, net, dispatch }: Props) {
   if (!units.length) {
     return <section className="card empty-card">Design a network on the MER design tab first. Evolution then simplifies it by breaking loops and relaxing along utility paths.</section>;
   }
+  if (project.network?.splits?.length) {
+    return (
+      <section className="card empty-card">
+        This network has split streams. Evolution (loops, utility paths and relaxing) does not handle splits yet; remove the splits on the MER design tab to evolve the network.
+      </section>
+    );
+  }
 
   return (
     <div className="stack">

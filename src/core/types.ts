@@ -137,10 +137,28 @@ export interface NetUnit {
   /** kW */
   load: number;
   x: number;
+  /** Branch of a split hot / cold stream this unit sits on (index into the split's fractions; default 0) */
+  hotBranch?: number;
+  coldBranch?: number;
+}
+
+/**
+ * A stream split into parallel branches over one side of the pinch (the whole
+ * side, from the pinch to the stream's end there). Each branch carries a
+ * fraction of the stream's flow, so its CP is that fraction of the stream's CP.
+ * Without a pinch, side 'above' means the whole stream.
+ */
+export interface StreamSplit {
+  id: string;
+  stream: string;
+  side: 'above' | 'below';
+  /** Flow fractions of the branches, > 0, summing to 1 */
+  fractions: number[];
 }
 
 export interface Network {
   units: NetUnit[];
+  splits?: StreamSplit[];
 }
 
 /** One saved step of network evolution (a snapshot of the units). */

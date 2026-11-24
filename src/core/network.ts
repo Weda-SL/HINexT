@@ -6,7 +6,7 @@
  * units, ΔT at each end, area, feasibility warnings and the comparison with
  * the targets. Pure functions, no UI.
  */
-import type { Economics, NetUnit, Project } from './types';
+import type { Economics, NetUnit, Project, StreamSplit } from './types';
 import type { Analysis } from './analyse';
 import type { ResolvedStream, ResolvedUtility } from './streams';
 import { EPS } from './streams';
@@ -132,6 +132,19 @@ export interface StreamResult {
   temps: { unit: string | null; t: number }[];
   /** Q from supply at which the stream reaches its pinch temperature */
   pinchQ: number;
+  /** Branches of a split on each side of the pinch */
+  branches?: Partial<Record<Region, BranchResult[]>>;
+}
+
+export type Region = 'above' | 'below';
+
+export interface BranchResult {
+  fraction: number;
+  /** CP of the branch at the pinch end, kW/K */
+  cp: number;
+  /** Branch share of the stream's duty on that side, kW */
+  duty: number;
+  remaining: number;
 }
 
 export interface NetworkResult {
@@ -148,6 +161,8 @@ export interface NetworkResult {
   total: number;
   /** All stream duties met with no errors */
   complete: boolean;
+  /** Whether the problem has a pinch (without one, everything counts as 'above') */
+  hasPinch: boolean;
   /** Stream-count rule at the pinch */
   pinchCounts?: { aboveHot: number; aboveCold: number; belowHot: number; belowCold: number };
 }
@@ -182,6 +197,33 @@ function flowOrder(units: NetUnit[], s: ResolvedStream): NetUnit[] {
 
 export type TempMode = 'pinch' | 'series';
 
+/** Side of the pinch a position belongs to (without a pinch everything is 'above'). */
+export function regionOf(x: number, hasPinch: boolean): Region {
+  return !hasPinch || x < PINCH_X ? 'above' : 'below';
+}
+
+/** Valid splits of a project, keyed `${stream}|${side}`, fractions normalised (2+ branches only). */
+export function splitMap(project: Project): Map<string, number[]> {
+  const out = new Map<string, number[]>();
+  for (const sp of project.network?.splits ?? []) {
+    const f = sp.fractions.filter((x) => Number.isFinite(x) && x > 0);
+    const sum = f.reduce((a, b) => a + b, 0);
+    if (f.length < 2 || !(sum > 0)) continue;
+    out.set(`${sp.stream}|${sp.side}`, f.map((x) => x / sum));
+  }
+  return out;
+}
+
+export function splitOf(project: Project, stream: string, side: Region): StreamSplit | undefined {
+  return project.network?.splits?.find((sp) => sp.stream === stream && sp.side === side);
+}
+
+/** Branch index of a unit on a split stream (clamped; 0 when unset). */
+export function branchIndex(u: NetUnit, kind: 'hot' | 'cold', n: number): number {
+  const b = kind === 'hot' ? u.hotBranch : u.coldBranch;
+  return Math.min(n - 1, Math.max(0, Math.round(b ?? 0)));
+}
+
 /**
  * mode 'pinch' (pinch design method, used while designing): units above and
  * below the pinch are designed separately, so on each side a stream starts at
@@ -201,8 +243,10 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
   const tags = unitTags(units);
 
   // Walk every stream in flow order to get inlet/outlet temperatures of each unit side.
-  const side = new Map<string, { hotIn: number; hotOut: number; coldIn: number; coldOut: number; hotQ0: number; coldQ0: number }>();
-  for (const u of units) side.set(u.id, { hotIn: NaN, hotOut: NaN, coldIn: NaN, coldOut: NaN, hotQ0: 0, coldQ0: 0 });
+  const side = new Map<string, SideTemps>();
+  for (const u of units) side.set(u.id, { hotIn: NaN, hotOut: NaN, coldIn: NaN, coldOut: NaN, hotQ0: 0, coldQ0: 0, hotF: 1, coldF: 1 });
+  const splits = splitMap(project);
+  const hasPinch = pinch !== undefined;
   const streamResults = new Map<string, StreamResult>();
   for (const s of analysis.streams) {
     const prof = profiles.get(s.id)!;
@@ -212,21 +256,50 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
     let q = 0;
     let crossed = false;
     const temps: StreamResult['temps'] = [{ unit: null, t: prof.tempAt(0) }];
-    for (const u of order) {
-      const r = side.get(u.id)!;
+    const kindKey = s.kind;
+    for (let i = 0; i < order.length; ) {
+      const u = order[i];
       // pinch design: the second side of the pinch starts at the pinch temperature
       const secondSide = s.kind === 'hot' ? u.x >= PINCH_X : u.x < PINCH_X;
       if (mode === 'pinch' && pTs !== undefined && secondSide && !crossed) {
         q = pinchStartQ;
         crossed = true;
       }
-      const tin = prof.tempAt(q);
-      const q0 = q;
-      q += Math.max(0, u.load);
-      const tout = prof.tempAt(q);
-      if (s.kind === 'hot') Object.assign(r, { hotIn: tin, hotOut: tout, hotQ0: q0 });
-      else Object.assign(r, { coldIn: tin, coldOut: tout, coldQ0: q0 });
-      temps.push({ unit: u.id, t: tout });
+      const reg = regionOf(u.x, hasPinch);
+      const fr = splits.get(`${s.id}|${reg}`);
+      if (!fr) {
+        const r = side.get(u.id)!;
+        const tin = prof.tempAt(q);
+        const q0 = q;
+        q += Math.max(0, u.load);
+        const tout = prof.tempAt(q);
+        if (kindKey === 'hot') Object.assign(r, { hotIn: tin, hotOut: tout, hotQ0: q0, hotF: 1 });
+        else Object.assign(r, { coldIn: tin, coldOut: tout, coldQ0: q0, coldF: 1 });
+        temps.push({ unit: u.id, t: tout });
+        i++;
+        continue;
+      }
+      // split region: the branches all start at the stream's temperature here and mix at the end.
+      // A branch with flow fraction f that has taken qb kW is at the stream temperature for qEnter + qb / f.
+      const qEnter = q;
+      const bq = fr.map(() => 0);
+      let j = i;
+      while (j < order.length && regionOf(order[j].x, hasPinch) === reg) {
+        const v = order[j];
+        const r = side.get(v.id)!;
+        const b = branchIndex(v, kindKey, fr.length);
+        const f = fr[b];
+        const q0 = qEnter + bq[b] / f;
+        const tin = prof.tempAt(q0);
+        bq[b] += Math.max(0, v.load);
+        const tout = prof.tempAt(qEnter + bq[b] / f);
+        if (kindKey === 'hot') Object.assign(r, { hotIn: tin, hotOut: tout, hotQ0: q0, hotF: f });
+        else Object.assign(r, { coldIn: tin, coldOut: tout, coldQ0: q0, coldF: f });
+        temps.push({ unit: v.id, t: tout });
+        j++;
+      }
+      q = qEnter + bq.reduce((a, b) => a + b, 0);
+      i = j;
     }
     const pT = streamPinchT(s, pinch);
     const pinchQ = pT === undefined ? (s.kind === 'hot' ? prof.duty : 0) : prof.heatTo(pT);
@@ -237,6 +310,26 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
     let assignedBelow = 0;
     for (const u of order) (u.x < PINCH_X ? (assignedAbove += u.load) : (assignedBelow += u.load));
     const assigned = assignedAbove + assignedBelow;
+    const branches: StreamResult['branches'] = {};
+    for (const reg of ['above', 'below'] as const) {
+      const fr = splits.get(`${s.id}|${reg}`);
+      if (!fr) continue;
+      const dutySide = reg === 'above' ? dutyAbove : dutyBelow;
+      // CP at the pinch end of this side
+      const qPinchEnd = s.kind === 'hot' ? (reg === 'above' ? Math.max(0, pinchQ - 1e-9) : pinchQ) : reg === 'above' ? pinchQ : Math.max(0, pinchQ - 1e-9);
+      const cpEnd = prof.cpAt(qPinchEnd);
+      const list = fr.map((f) => ({ fraction: f, cp: cpEnd * f, duty: f * dutySide, remaining: f * dutySide }));
+      for (const u of order) {
+        if (regionOf(u.x, hasPinch) !== reg) continue;
+        list[branchIndex(u, s.kind, fr.length)].remaining -= u.load;
+      }
+      list.forEach((b, k) => {
+        if (b.remaining < -1e-6 * Math.max(1, b.duty)) {
+          issues.push({ level: 'error', stream: s.id, message: `${s.name}, branch ${k + 1} ${reg} the pinch: units take ${fmt(b.duty - b.remaining)} kW but the branch only has ${fmt(b.duty)} kW.` });
+        }
+      });
+      branches[reg] = list;
+    }
     streamResults.set(s.id, {
       id: s.id,
       assigned,
@@ -245,6 +338,7 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
       remainingBelow: dutyBelow - assignedBelow,
       temps,
       pinchQ,
+      branches: Object.keys(branches).length ? branches : undefined,
     });
     if (assigned > prof.duty + 1e-6 * Math.max(1, prof.duty)) {
       issues.push({ level: 'error', stream: s.id, message: `${s.name}: units exchange ${fmt(assigned)} kW but the stream only has ${fmt(prof.duty)} kW.` });
@@ -264,21 +358,21 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
     const name = unitName(u, streams, utils, tags);
     if (u.kind === 'exchanger') {
       if (!hs || !cs || hs.kind !== 'hot' || cs.kind !== 'cold') valid = false;
-      hH = hs ? pieceH(hs, profiles.get(hs.id)!, r.hotQ0, u.load) : undefined;
-      hC = cs ? pieceH(cs, profiles.get(cs.id)!, r.coldQ0, u.load) : undefined;
+      hH = hs ? pieceH(hs, profiles.get(hs.id)!, r.hotQ0, u.load / r.hotF) : undefined;
+      hC = cs ? pieceH(cs, profiles.get(cs.id)!, r.coldQ0, u.load / r.coldF) : undefined;
     } else if (u.kind === 'heater') {
       if (!cs || !ut || ut.kind !== 'hot') valid = false;
       const t = utilityTemps(ut);
       hotIn = t.tin;
       hotOut = t.tout;
       hH = ut?.h;
-      hC = cs ? pieceH(cs, profiles.get(cs.id)!, r.coldQ0, u.load) : undefined;
+      hC = cs ? pieceH(cs, profiles.get(cs.id)!, r.coldQ0, u.load / r.coldF) : undefined;
     } else {
       if (!hs || !ut || ut.kind !== 'cold') valid = false;
       const t = utilityTemps(ut);
       coldIn = t.tin;
       coldOut = t.tout;
-      hH = hs ? pieceH(hs, profiles.get(hs.id)!, r.hotQ0, u.load) : undefined;
+      hH = hs ? pieceH(hs, profiles.get(hs.id)!, r.hotQ0, u.load / r.hotF) : undefined;
       hC = ut?.h;
     }
     if (!valid) {
@@ -336,15 +430,15 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
       const ph = profiles.get(hs.id)!;
       const pc = profiles.get(cs.id)!;
       if (u.x < PINCH_X && Math.abs(r.hotOut - hp) < 1e-6 && Math.abs(r.coldIn - cp) < 1e-6) {
-        const cpH = ph.cpAt(r.hotQ0 + u.load - 1e-9);
-        const cpC = pc.cpAt(r.coldQ0);
+        const cpH = ph.cpAt(r.hotQ0 + u.load / r.hotF - 1e-9) * r.hotF;
+        const cpC = pc.cpAt(r.coldQ0) * r.coldF;
         if (cpH > cpC + 1e-9) {
           issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils, tags)}: above the pinch CP hot (${fmt(cpH)}) should be ≤ CP cold (${fmt(cpC)}).` });
         }
       }
       if (u.x >= PINCH_X && Math.abs(r.hotIn - hp) < 1e-6 && Math.abs(r.coldOut - cp) < 1e-6) {
-        const cpH = ph.cpAt(r.hotQ0);
-        const cpC = pc.cpAt(r.coldQ0 + u.load - 1e-9);
+        const cpH = ph.cpAt(r.hotQ0) * r.hotF;
+        const cpC = pc.cpAt(r.coldQ0 + u.load / r.coldF - 1e-9) * r.coldF;
         if (cpH + 1e-9 < cpC) {
           issues.push({ level: 'warning', unit: u.id, message: `${unitName(u, streams, utils, tags)}: below the pinch CP hot (${fmt(cpH)}) should be ≥ CP cold (${fmt(cpC)}).` });
         }
@@ -376,11 +470,14 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
     };
     const hots = analysis.streams.filter((s) => s.kind === 'hot');
     const colds = analysis.streams.filter((s) => s.kind === 'cold');
+    // a split stream counts once per branch on that side
+    const n = (list: ResolvedStream[], on: (s: ResolvedStream) => boolean, reg: Region) =>
+      list.filter(on).reduce((t, s) => t + (splits.get(`${s.id}|${reg}`)?.length ?? 1), 0);
     pinchCounts = {
-      aboveHot: hots.filter(above).length,
-      aboveCold: colds.filter(above).length,
-      belowHot: hots.filter(below).length,
-      belowCold: colds.filter(below).length,
+      aboveHot: n(hots, above, 'above'),
+      aboveCold: n(colds, above, 'above'),
+      belowHot: n(hots, below, 'below'),
+      belowCold: n(colds, below, 'below'),
     };
   }
 
@@ -409,6 +506,7 @@ export function analyseNetwork(project: Project, analysis: Analysis, mode: TempM
     operating,
     total: operating + capitalAnnual,
     complete,
+    hasPinch,
     pinchCounts,
   };
 }
@@ -421,10 +519,23 @@ function pieceH(s: ResolvedStream, prof: Profile, q0: number, load: number): num
   return p?.h ?? s.h;
 }
 
+interface SideTemps {
+  hotIn: number;
+  hotOut: number;
+  coldIn: number;
+  coldOut: number;
+  /** Stream-equivalent Q from supply where the unit starts (for a branch: qEnter + branch Q / fraction) */
+  hotQ0: number;
+  coldQ0: number;
+  /** Flow fraction of the branch the unit sits on (1 when not split) */
+  hotF: number;
+  coldF: number;
+}
+
 /** Heat a unit moves across the pinch, kW. */
 function crossPinchHeat(
   u: NetUnit,
-  r: { hotIn: number; hotOut: number; coldIn: number; coldOut: number; hotQ0: number; coldQ0: number },
+  r: SideTemps,
   hs: ResolvedStream | undefined,
   cs: ResolvedStream | undefined,
   profiles: Map<string, Profile>,
@@ -435,14 +546,14 @@ function crossPinchHeat(
   const hotAbove = () => {
     if (!hs) return 0;
     const pq = profiles.get(hs.id)!.heatTo(streamPinchT(hs, pinch)!);
-    return Math.max(0, Math.min(r.hotQ0 + u.load, pq) - r.hotQ0);
+    return Math.max(0, Math.min(r.hotQ0 + u.load / r.hotF, pq) - r.hotQ0) * r.hotF;
   };
   const hotBelow = () => (hs ? u.load - hotAbove() : 0);
   // cold heat absorbed below its pinch temperature
   const coldBelow = () => {
     if (!cs) return 0;
     const pq = profiles.get(cs.id)!.heatTo(streamPinchT(cs, pinch)!);
-    return Math.max(0, Math.min(r.coldQ0 + u.load, pq) - r.coldQ0);
+    return Math.max(0, Math.min(r.coldQ0 + u.load / r.coldF, pq) - r.coldQ0) * r.coldF;
   };
   if (u.kind === 'heater') return coldBelow();
   if (u.kind === 'cooler') return u.load - hotBelow();
@@ -476,14 +587,18 @@ export function unitName(
  * Tick-off heuristic: the largest load a new exchanger between two streams can
  * take on its side of the pinch — the smaller of the two streams' unmatched heat there.
  */
-export function tickOffLoad(net: NetworkResult, hot: string, cold: string, x: number): number {
-  const h = net.streams.get(hot);
-  const c = net.streams.get(cold);
-  if (!h || !c) return 0;
-  const above = x < PINCH_X;
-  const hr = above ? h.remainingAbove : h.remainingBelow;
-  const cr = above ? c.remainingAbove : c.remainingBelow;
-  return Math.max(0, Math.min(hr, cr));
+export function tickOffLoad(net: NetworkResult, hot: string, cold: string, x: number, hotBranch?: number, coldBranch?: number): number {
+  return Math.max(0, Math.min(endRemaining(net, hot, x, hotBranch), endRemaining(net, cold, x, coldBranch)));
+}
+
+/** Unmatched heat of a stream (or of one branch of it, when split there) on the side of the pinch at x. */
+export function endRemaining(net: NetworkResult, stream: string, x: number, branch?: number): number {
+  const sr = net.streams.get(stream);
+  if (!sr) return 0;
+  const reg = regionOf(x, net.hasPinch);
+  const br = sr.branches?.[reg];
+  if (br) return br[Math.min(br.length - 1, Math.max(0, branch ?? 0))].remaining;
+  return reg === 'above' ? sr.remainingAbove : sr.remainingBelow;
 }
 
 /** Annualised cost helper for evolution tables. */
