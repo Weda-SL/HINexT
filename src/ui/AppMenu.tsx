@@ -89,7 +89,7 @@ export function AppMenu({ onNew, onFile, onSave, onShare, onReport, onExample }:
           </button>
           <button role="menuitem" className="menu-item" onClick={() => pick(onReport)}>
             <span className="menu-title">Export as PDF</span>
-            <span className="menu-sub">Full report: data, targets, curves, design and optimization steps</span>
+            <span className="menu-sub">Full report: data, targets, curves, design and optimization</span>
           </button>
           <button role="menuitem" className="menu-item" onClick={() => pick(onShare)}>
             <span className="menu-title">Share link…</span>
