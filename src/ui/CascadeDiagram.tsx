@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import type { ProblemTable } from '../core/cascade';
+import { DownloadMenu, saveSvgFile, saveSvgPdf, saveSvgPng } from './svgExport';
 import type { Conv } from './format';
 import { num } from './format';
 
@@ -15,7 +17,8 @@ const FONT = 'Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
  * labelled with the shifted temperature, and the heat flow at each boundary —
  * left column with zero hot utility, right column with QH,min added.
  */
-export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
+export function CascadeDiagram({ pt, c, filename = 'heat_cascade' }: { pt: ProblemTable; c: Conv; filename?: string }) {
+  const ref = useRef<SVGSVGElement>(null);
   const n = pt.boundaries.length;
   if (n < 2) return null;
   const rowH = 74;
@@ -33,8 +36,11 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
   // flow entering the top of each column
   const startFlow = [0, pt.qhMin];
 
+  const svg = () => ref.current;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Heat cascade diagram" fontFamily={FONT} className="cascade-svg">
+    <figure className="chart cascade-chart">
+    <svg ref={ref} viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Heat cascade diagram" fontFamily={FONT} className="cascade-svg">
+      <rect x="0" y="0" width={W} height={H} fill="#ffffff" />
       <defs>
         <marker id="cas-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
           <path d="M0 0L10 5L0 10z" fill={INK} />
@@ -92,6 +98,15 @@ export function CascadeDiagram({ pt, c }: { pt: ProblemTable; c: Conv }) {
         </g>
       ))}
     </svg>
+      <figcaption className="chart-actions">
+        <DownloadMenu
+          label="Download heat cascade diagram"
+          onPdf={() => svg() && saveSvgPdf(svg()!, W, H, filename)}
+          onSvg={() => svg() && saveSvgFile(svg()!, W, H, filename)}
+          onPng={() => svg() && saveSvgPng(svg()!, W, H, filename)}
+        />
+      </figcaption>
+    </figure>
   );
 }
 

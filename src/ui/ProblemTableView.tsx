@@ -2,6 +2,7 @@ import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import { conv, num } from './format';
 import { CascadeDiagram } from './CascadeDiagram';
+import { safeFileName } from '../state/storage';
 
 export function ProblemTableView({ project, analysis, part }: { project: Project; analysis: Analysis; part: 'table' | 'cascade' }) {
   const c = conv(project.settings.units);
@@ -68,7 +69,7 @@ export function ProblemTableView({ project, analysis, part }: { project: Project
             </p>
           </div>
         </header>
-        <div className="cascade-fig"><CascadeDiagram pt={pt} c={c} /></div>
+        <div className="cascade-fig"><CascadeDiagram pt={pt} c={c} filename={`${safeFileName(project.name)}_heat_cascade`} /></div>
         <div className="summary-line">
           <span>QH,min = <b>{num(c.p(pt.qhMin))} {c.pUnit}</b></span>
           <span>QC,min = <b>{num(c.p(pt.qcMin))} {c.pUnit}</b></span>
