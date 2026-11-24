@@ -203,9 +203,9 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                   <dt>LMTD</dt><dd>{num(selRes.lmtd)} K</dd>
                 </dl>
                 <dl className="kv kv-minor">
-                  <dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd>
-                  <dt>Area</dt><dd>{num(selRes.area)} m²</dd>
-                  <dt>Capital</dt><dd>{money(selRes.capital)}</dd>
+                  <div><dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd></div>
+                  <div><dt>Area</dt><dd>{num(selRes.area)} m²</dd></div>
+                  <div><dt>Capital</dt><dd>{money(selRes.capital)}</dd></div>
                 </dl>
               </div>
           </div>

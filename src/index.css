@@ -325,3 +325,6 @@ g:hover > .unit-del { stroke: #6b7280; }
 .unit-panel .kv-major dd { font-size: 17px; font-weight: 650; color: var(--ink); }
 .unit-panel .kv-minor { display: flex; gap: 6px; flex-wrap: wrap; } .unit-panel .kv-minor dd { margin-right: 22px; }
 .unit-panel .kv-dt { margin-left: 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 1px 8px; border-radius: 9px; background: #f1f0ed; vertical-align: 2px; }
+.unit-panel .kv-minor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
+.unit-panel .kv-minor > div { display: flex; gap: 6px; }
+.unit-panel .kv-minor dd { margin-right: 0; }
