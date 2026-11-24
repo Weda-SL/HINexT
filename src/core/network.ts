@@ -180,7 +180,17 @@ function flowOrder(units: NetUnit[], s: ResolvedStream): NetUnit[] {
   return mine.sort((a, b) => (s.kind === 'hot' ? a.x - b.x : b.x - a.x) || a.id.localeCompare(b.id));
 }
 
-export function analyseNetwork(project: Project, analysis: Analysis): NetworkResult {
+export type TempMode = 'pinch' | 'series';
+
+/**
+ * mode 'pinch' (pinch design method, used while designing): units above and
+ * below the pinch are designed separately, so on each side a stream starts at
+ * its pinch temperature (hot streams below the pinch, cold streams above it).
+ * mode 'series' (whole network, used for evolution): temperatures follow the
+ * units one after another along each stream. For a complete MER design the two
+ * give the same temperatures.
+ */
+export function analyseNetwork(project: Project, analysis: Analysis, mode: TempMode = 'series'): NetworkResult {
   const units = project.network?.units ?? [];
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
@@ -197,10 +207,19 @@ export function analyseNetwork(project: Project, analysis: Analysis): NetworkRes
   for (const s of analysis.streams) {
     const prof = profiles.get(s.id)!;
     const order = flowOrder(units, s);
+    const pTs = streamPinchT(s, pinch);
+    const pinchStartQ = pTs === undefined ? 0 : prof.heatTo(pTs);
     let q = 0;
+    let crossed = false;
     const temps: StreamResult['temps'] = [{ unit: null, t: prof.tempAt(0) }];
     for (const u of order) {
       const r = side.get(u.id)!;
+      // pinch design: the second side of the pinch starts at the pinch temperature
+      const secondSide = s.kind === 'hot' ? u.x >= PINCH_X : u.x < PINCH_X;
+      if (mode === 'pinch' && pTs !== undefined && secondSide && !crossed) {
+        q = pinchStartQ;
+        crossed = true;
+      }
       const tin = prof.tempAt(q);
       const q0 = q;
       q += Math.max(0, u.load);

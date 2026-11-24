@@ -76,6 +76,7 @@ export default function App() {
 
   const analysis = useMemo(() => analyse(project), [project]);
   const net = useMemo(() => analyseNetwork(project, analysis), [project, analysis]);
+  const designNet = useMemo(() => analyseNetwork(project, analysis, 'pinch'), [project, analysis]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
   const errors = analysis.issues.filter((i) => i.level === 'error').length;
@@ -166,7 +167,7 @@ export default function App() {
 
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
-        {tab === 'design' && <DesignView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
+        {tab === 'design' && <DesignView project={project} analysis={analysis} net={designNet} dispatch={dispatch} />}
         {tab === 'evolution' && <EvolutionView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>

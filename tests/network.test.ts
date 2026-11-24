@@ -106,3 +106,41 @@ describe('feasibility checks', () => {
     expect(n.complete).toBe(false);
   });
 });
+
+describe('pinch design temperatures', () => {
+  it('above-pinch units start from the pinch, even with nothing below yet', () => {
+    const p = EXAMPLES[0].build();
+    p.network = { units: [{ id: 'E2', kind: 'exchanger', hot: 's4', cold: 's1', load: 90, x: 0.35 }] };
+    const a = analyse(p);
+    const series = analyseNetwork(p, a).units[0];
+    close(series.coldIn, 20); // series: Cold 1 still at its supply temperature
+    const pinch = analyseNetwork(p, a, 'pinch').units[0];
+    close(pinch.coldIn, 80);
+    close(pinch.coldOut, 125);
+    close(pinch.hotOut, 90);
+  });
+
+  it('below-pinch units on a hot stream start from the pinch', () => {
+    const p = EXAMPLES[0].build();
+    p.network = { units: [{ id: 'E3', kind: 'exchanger', hot: 's2', cold: 's1', load: 90, x: 0.6 }] };
+    const a = analyse(p);
+    const r = analyseNetwork(p, a, 'pinch').units[0];
+    close(r.hotIn, 90);
+    close(r.hotOut, 60);
+    close(r.coldIn, 20);
+    close(r.coldOut, 65);
+  });
+
+  it('gives the same result as series for the complete MER design', () => {
+    const p = kempMER();
+    const a = analyse(p);
+    const s = analyseNetwork(p, a).units;
+    const q = analyseNetwork(p, a, 'pinch').units;
+    s.forEach((r, i) => {
+      close(r.hotIn, q[i].hotIn);
+      close(r.coldIn, q[i].coldIn);
+      close(r.hotOut, q[i].hotOut);
+      close(r.coldOut, q[i].coldOut);
+    });
+  });
+});
