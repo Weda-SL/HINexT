@@ -18,7 +18,7 @@ type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'data', label: 'Energy targets' },
   { id: 'targets', label: 'Cost targets' },
-  { id: 'design', label: 'MER design' },
+  { id: 'design', label: 'HEN design' },
   { id: 'evolution', label: 'Evolution' },
 ];
 
