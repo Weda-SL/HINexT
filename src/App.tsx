@@ -134,7 +134,7 @@ export default function App() {
     >
       <div className="brandbar">
         <div className="brand" title="HINexT — the next HINT">
-          <span className="b">HIN</span><span className="l">ex</span><span className="b">T</span>
+          <img className="brand-logo" src="./logo.svg" alt="HINexT" />
         </div>
       </div>
       <header className="topbar">
