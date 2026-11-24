@@ -82,7 +82,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           <div>
             <h2>Grid diagram</h2>
             <p className="muted">
-              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them. Heaters only take the heat still needed above the pinch and coolers only the heat below it; the rest is left for exchangers.
+              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. To delete a unit, click it and press the red × or the Delete key. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them. Heaters only take the heat still needed above the pinch and coolers only the heat below it; the rest is left for exchangers.
             </p>
           </div>
           <div className="btn-row">
@@ -111,6 +111,10 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
             setSelected(u.id);
           }}
           onMove={(id, x) => dispatch({ type: 'unit/update', id, patch: { x }, label: 'Move unit' })}
+          onDelete={(id) => {
+            dispatch({ type: 'unit/delete', id });
+            setSelected(null);
+          }}
           onAddUtility={(sid) => {
             const u = utilityUnitFor(analysis, net, sid);
             if (u) {

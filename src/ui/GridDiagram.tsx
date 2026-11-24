@@ -35,6 +35,8 @@ interface Props {
   onMatch?: (hot: string, cold: string, x: number) => void;
   onMove?: (id: string, x: number) => void;
   onAddUtility?: (stream: string) => void;
+  /** Delete a unit (shows a × on the selected unit and enables the Delete key) */
+  onDelete?: (id: string) => void;
   /** Duty a heater/cooler would take on this stream (region-aware) */
   utilityDuty?: (stream: string) => number;
   highlight?: Highlight;
@@ -57,7 +59,7 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, utilityDuty, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pending, setPending] = useState<{ stream: string; x: number } | null>(null);
@@ -86,10 +88,18 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const ix = (p: number) => Math.min(0.98, Math.max(0.02, (p - L) / (W - L - R)));
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPending(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPending(null);
+      const t = e.target as HTMLElement | null;
+      const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && selected && onDelete) {
+        e.preventDefault();
+        onDelete(selected);
+      }
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [selected, onDelete]);
 
   const toLocal = (e: React.PointerEvent | React.MouseEvent) => {
     const r = svgRef.current!.getBoundingClientRect();
@@ -325,6 +335,19 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               )}
             </text>
           );
+          const del = (cy: number) =>
+            sel && onDelete ? (
+              <g
+                data-hover
+                style={{ cursor: 'pointer' }}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onDelete(u.id); }}
+              >
+                <title>Delete (Del key)</title>
+                <circle cx={x} cy={cy - 27} r={8} fill={ERR} stroke="#fff" strokeWidth="1.5" />
+                <path d={`M${x - 3} ${cy - 30} l6 6 M${x + 3} ${cy - 30} l-6 6`} stroke="#fff" strokeWidth="1.8" strokeLinecap="round" pointerEvents="none" />
+              </g>
+            ) : null;
           const g = (children: React.ReactNode) => (
             <g
               key={u.id}
@@ -350,6 +373,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 {temps(yh, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
                 {temps(yc, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold)}
                 {loadLabel(yc, true)}
+                {del(Math.min(yh, yc))}
               </>,
             );
           }
@@ -362,6 +386,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               {circle(y, u.kind === 'heater' ? HEATER : COOLER, tags.get(u.id))}
               {u.kind === 'heater' ? temps(y, r?.coldIn ?? NaN, r?.coldOut ?? NaN, false, u.cold) : temps(y, r?.hotIn ?? NaN, r?.hotOut ?? NaN, true, u.hot)}
               {loadLabel(y, true)}
+              {del(y)}
             </>,
           );
         })}
