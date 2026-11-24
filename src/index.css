@@ -380,3 +380,8 @@ g:hover > .unit-del { stroke: #6b7280; }
 .toolbar.toolbar-left { margin-left: 0; }
 .topbar { padding-left: 16px; }
 .x-slider { flex: 1; min-width: 160px; accent-color: #4b3cc0; }
+
+.share-modal { width: min(620px, 100%); position: relative; }
+.share-modal h2 { margin: 0; font-size: 16px; }
+.share-row { display: flex; gap: 8px; }
+.share-url { flex: 1; min-width: 0; font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 7px; background: #fafaf8; }

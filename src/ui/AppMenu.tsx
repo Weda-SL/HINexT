@@ -5,11 +5,12 @@ interface Props {
   onNew: () => void;
   onFile: () => void;
   onSave: () => void;
+  onShare: () => void;
   onExample: (ex: Example) => void;
 }
 
 /** Main menu (☰): new project, open a file, save to a file, or open a built-in example. */
-export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
+export function AppMenu({ onNew, onFile, onSave, onShare, onExample }: Props) {
   const [open, setOpen] = useState(false);
   const [sub, setSub] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -55,6 +56,10 @@ export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
             <span className="menu-title">Save to a file <span className="kbd">Ctrl+S</span></span>
             <span className="menu-sub">Download this project as a .pinch file</span>
           </button>
+          <button role="menuitem" className="menu-item" onClick={() => pick(onShare)}>
+            <span className="menu-title">Share link…</span>
+            <span className="menu-sub">The project packed into a link; nothing is uploaded</span>
+          </button>
           <div className="submenu-root" onPointerEnter={() => setSub(true)} onPointerLeave={() => setSub(false)}>
             <button
               role="menuitem"
@@ -74,7 +79,11 @@ export function AppMenu({ onNew, onFile, onSave, onExample }: Props) {
                   <button key={ex.key} role="menuitem" className="menu-item" onClick={() => pick(() => onExample(ex))}>
                     <span className="menu-title">{ex.title}</span>
                     <span className="menu-sub">
-                      ΔTmin {ex.published.dtMin} K · QH,min {ex.published.qh} kW · QC,min {ex.published.qc} kW
+                      {(() => {
+                        const mw = ex.published.qh >= 5000;
+                        const f = (v: number) => (mw ? `${v / 1000} MW` : `${v} kW`);
+                        return `ΔTmin ${ex.published.dtMin} K · QH,min ${f(ex.published.qh)} · QC,min ${f(ex.published.qc)}`;
+                      })()}
                     </span>
                   </button>
                 ))}

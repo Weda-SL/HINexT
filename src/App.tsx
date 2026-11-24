@@ -13,6 +13,8 @@ import { DesignView } from './ui/DesignView';
 import { EvolutionView } from './ui/EvolutionView';
 import { analyseNetwork } from './core/network';
 import { HistoryButton } from './ui/HistoryButton';
+import { ShareDialog } from './ui/ShareDialog';
+import { decodeShare, encodeShare, sharePayload, shareUrl } from './state/share';
 
 type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
@@ -29,14 +31,27 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>('data');
   const [toast, setToast] = useState<string | null>(null);
+  const [share, setShare] = useState<{ url: string; length: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const project = hist.present.project;
   const dispatch = useCallback((action: Action) => send({ type: 'do', action }), []);
 
   // Restore the autosaved project once, then autosave on every change.
   useEffect(() => {
-    store.load().then((p) => {
+    store.load().then(async (p) => {
       if (p) send({ type: 'reset', project: p, label: 'Restore autosave' });
+      // a share link opens on top of the autosave, as an undoable step
+      const payload = sharePayload(window.location.hash);
+      if (payload) {
+        try {
+          const shared = await decodeShare(payload);
+          send({ type: 'do', action: { type: 'project/load', project: shared, label: 'Open shared link' } });
+          setToast(`Opened the shared project “${shared.name}”. Undo returns to your previous project.`);
+        } catch (e) {
+          setToast((e as Error).message);
+        }
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
       setReady(true);
     });
     requestPersistence();
@@ -116,6 +131,10 @@ export default function App() {
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
             onSave={() => downloadProject(project)}
+            onShare={async () => {
+              const payload = await encodeShare(project, APP_VERSION);
+              setShare({ url: shareUrl(payload, window.location.href), length: payload.length });
+            }}
             onExample={(ex) => dispatch({ type: 'project/load', project: ex.build(), label: `Open example: ${ex.title}` })}
           />
           <span className="sep" />
@@ -179,6 +198,7 @@ export default function App() {
         HINexT {APP_VERSION} | MIT licence | © Weda 2026
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
+      {share && <ShareDialog url={share.url} payloadLength={share.length} onSaveFile={() => { downloadProject(project); setShare(null); }} onClose={() => setShare(null)} />}
     </div>
   );
 }
