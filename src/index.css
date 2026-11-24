@@ -312,3 +312,8 @@ g:hover > .unit-del { stroke: #6b7280; }
 
 .guide-col.muted-col { opacity: 0.45; }
 .guide-col.muted-col:hover { opacity: 0.8; }
+
+.unit-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-2); }
+.unit-panel h3 { font-size: 13.5px; margin: 0 0 8px; }
+.unit-panel .kv { grid-template-columns: repeat(4, max-content 1fr); column-gap: 14px; }
+.unit-panel .kv dd { text-align: left; }

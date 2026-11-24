@@ -149,6 +149,70 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
             </div>
           </div>
         )}
+        {sel && selRes && (
+          <div className="unit-panel" data-keep-section>
+            <h3>{unitName(sel, streams, utils, tags)}</h3>
+            <div className="form">
+                <div className="param-row">
+                  <label>
+                    Load, {c.pUnit}
+                    <NumberField
+                      ariaLabel="Unit load"
+                      value={c.p(sel.load)}
+                      onCommit={(v) => Number.isFinite(v) && v >= 0 && dispatch({ type: 'unit/update', id: sel.id, patch: { load: c.pIn(v) }, label: `Set load of ${unitName(sel, streams, utils, tags)}` })}
+                    />
+                  </label>
+                  {sel.kind === 'exchanger' && (
+                    <button
+                      className="btn small"
+                      title="Largest load on this side of the pinch (the smaller unmatched heat of the two streams)"
+                      onClick={() => {
+                        const others = { ...net, streams: new Map(net.streams) };
+                        // tick-off ignoring this unit's own load
+                        for (const id of [sel.hot!, sel.cold!]) {
+                          const sr = others.streams.get(id)!;
+                          others.streams.set(id, sel.x < 0.5 ? { ...sr, remainingAbove: sr.remainingAbove + sel.load } : { ...sr, remainingBelow: sr.remainingBelow + sel.load });
+                        }
+                        const max = tickOffLoad(others, sel.hot!, sel.cold!, sel.x);
+                        dispatch({ type: 'unit/update', id: sel.id, patch: { load: +max.toFixed(6) }, label: `Tick off ${unitName(sel, streams, utils, tags)}` });
+                      }}
+                    >
+                      Tick off
+                    </button>
+                  )}
+                  {sel.kind !== 'exchanger' && (
+                    <label>
+                      Utility
+                      <select
+                        className="field-select"
+                        value={sel.utility}
+                        onChange={(e) => dispatch({ type: 'unit/update', id: sel.id, patch: { utility: e.target.value }, label: 'Change utility' })}
+                      >
+                        {analysis.utilities
+                          .filter((u) => u.kind === (sel.kind === 'heater' ? 'hot' : 'cold'))
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                      </select>
+                    </label>
+                  )}
+                  <button className="btn ghost small danger-text" onClick={() => { dispatch({ type: 'unit/delete', id: sel.id }); setSelected(null); }}>
+                    Delete
+                  </button>
+                </div>
+                <dl className="kv">
+                  <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}</dd>
+                  <dt>Cold side</dt><dd>{num(c.t(selRes.coldIn))} → {num(c.t(selRes.coldOut))} {c.tUnit}</dd>
+                  <dt>ΔT hot end / cold end</dt><dd>{num(selRes.dtHot)} / {num(selRes.dtCold)} K</dd>
+                  <dt>LMTD</dt><dd>{num(selRes.lmtd)} K</dd>
+                  <dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd>
+                  <dt>Area</dt><dd>{num(selRes.area)} m²</dd>
+                  <dt>Capital</dt><dd>{money(selRes.capital)}</dd>
+                  <dt>Side</dt><dd>{selRes.side === 'above' ? 'Above the pinch' : 'Below the pinch'}</dd>
+                </dl>
+              </div>
+          </div>
+        )}
       </section>
 
       <GuidePanel
@@ -164,107 +228,38 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
         section={hasPinch ? section : null}
       />
 
-      <div className="two-col">
-        <section className="card" data-keep-section={sel ? '' : undefined}>
-          <h2>{sel ? unitName(sel, streams, utils, tags) : 'Selected unit'}</h2>
-          {!sel || !selRes ? (
-            <p className="muted">Click a unit on the grid to edit its load, see its temperatures and area, or delete it.</p>
-          ) : (
-            <div className="form">
-              <div className="param-row">
-                <label>
-                  Load, {c.pUnit}
-                  <NumberField
-                    ariaLabel="Unit load"
-                    value={c.p(sel.load)}
-                    onCommit={(v) => Number.isFinite(v) && v >= 0 && dispatch({ type: 'unit/update', id: sel.id, patch: { load: c.pIn(v) }, label: `Set load of ${unitName(sel, streams, utils, tags)}` })}
-                  />
-                </label>
-                {sel.kind === 'exchanger' && (
-                  <button
-                    className="btn small"
-                    title="Largest load on this side of the pinch (the smaller unmatched heat of the two streams)"
-                    onClick={() => {
-                      const others = { ...net, streams: new Map(net.streams) };
-                      // tick-off ignoring this unit's own load
-                      for (const id of [sel.hot!, sel.cold!]) {
-                        const sr = others.streams.get(id)!;
-                        others.streams.set(id, sel.x < 0.5 ? { ...sr, remainingAbove: sr.remainingAbove + sel.load } : { ...sr, remainingBelow: sr.remainingBelow + sel.load });
-                      }
-                      const max = tickOffLoad(others, sel.hot!, sel.cold!, sel.x);
-                      dispatch({ type: 'unit/update', id: sel.id, patch: { load: +max.toFixed(6) }, label: `Tick off ${unitName(sel, streams, utils, tags)}` });
-                    }}
-                  >
-                    Tick off
-                  </button>
-                )}
-                {sel.kind !== 'exchanger' && (
-                  <label>
-                    Utility
-                    <select
-                      className="field-select"
-                      value={sel.utility}
-                      onChange={(e) => dispatch({ type: 'unit/update', id: sel.id, patch: { utility: e.target.value }, label: 'Change utility' })}
-                    >
-                      {analysis.utilities
-                        .filter((u) => u.kind === (sel.kind === 'heater' ? 'hot' : 'cold'))
-                        .map((u) => (
-                          <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                    </select>
-                  </label>
-                )}
-                <button className="btn ghost small danger-text" onClick={() => { dispatch({ type: 'unit/delete', id: sel.id }); setSelected(null); }}>
-                  Delete
-                </button>
-              </div>
-              <dl className="kv">
-                <dt>Hot side</dt><dd>{num(c.t(selRes.hotIn))} → {num(c.t(selRes.hotOut))} {c.tUnit}</dd>
-                <dt>Cold side</dt><dd>{num(c.t(selRes.coldIn))} → {num(c.t(selRes.coldOut))} {c.tUnit}</dd>
-                <dt>ΔT hot end / cold end</dt><dd>{num(selRes.dtHot)} / {num(selRes.dtCold)} K</dd>
-                <dt>LMTD</dt><dd>{num(selRes.lmtd)} K</dd>
-                <dt>U</dt><dd>{num(selRes.u, 4)} kW/m²K</dd>
-                <dt>Area</dt><dd>{num(selRes.area)} m²</dd>
-                <dt>Capital</dt><dd>{money(selRes.capital)}</dd>
-                <dt>Side</dt><dd>{selRes.side === 'above' ? 'Above the pinch' : 'Below the pinch'}</dd>
-              </dl>
-            </div>
-          )}
-        </section>
-
-        <section className="card">
-          <h2>Design vs targets</h2>
-          <table className="grid-table data compare">
-            <thead>
-              <tr>
-                <th />
-                <th className="r">Design</th>
-                <th className="r">Target</th>
-                <th className="r">Difference</th>
+      <section className="card">
+        <h2>Design vs targets</h2>
+        <table className="grid-table data compare">
+          <thead>
+            <tr>
+              <th />
+              <th className="r">Design</th>
+              <th className="r">Target</th>
+              <th className="r">Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label}>
+                <td>{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</td>
+                <td className="r strong">{r.design}</td>
+                <td className="r">{r.target}</td>
+                <td className={`r ${r.diff !== undefined && r.diff > 1e-6 ? 'warn' : ''}`}>
+                  {r.diff === undefined || !Number.isFinite(r.diff) ? '—' : r.label === 'Total annual cost' ? money(r.diff) : (r.diff > 0 ? '+' : '') + num(r.diff)}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.label}>
-                  <td>{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</td>
-                  <td className="r strong">{r.design}</td>
-                  <td className="r">{r.target}</td>
-                  <td className={`r ${r.diff !== undefined && r.diff > 1e-6 ? 'warn' : ''}`}>
-                    {r.diff === undefined || !Number.isFinite(r.diff) ? '—' : r.label === 'Total annual cost' ? money(r.diff) : (r.diff > 0 ? '+' : '') + num(r.diff)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className={`hint ${net.complete ? '' : 'warn'}`}>
-            {net.complete
-              ? 'All stream duties are met.'
-              : units.length
-                ? 'The network is not complete yet: see the checks below.'
-                : 'No units yet.'}
-          </p>
-        </section>
-      </div>
+            ))}
+          </tbody>
+        </table>
+        <p className={`hint ${net.complete ? '' : 'warn'}`}>
+          {net.complete
+            ? 'All stream duties are met.'
+            : units.length
+              ? 'The network is not complete yet: see the checks below.'
+              : 'No units yet.'}
+        </p>
+      </section>
 
     </div>
   );
