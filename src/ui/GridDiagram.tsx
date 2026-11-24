@@ -563,7 +563,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
 
         {rows.length === 0 && (
           <text x={W / 2} y={H / 2} fontSize="13" fill={INK2} textAnchor="middle">
-            Add streams on the Data tab to start designing.
+            Add streams on the Energy targets tab to start designing.
           </text>
         )}
       </svg>

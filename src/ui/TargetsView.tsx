@@ -113,7 +113,7 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Utility costs</h2>
-            <p className="muted">Duties come from the targeting on the Data tab. Enter the cost of each utility per kW of duty per year.</p>
+            <p className="muted">Duties come from the targeting on the Energy targets tab. Enter the cost of each utility per kW of duty per year.</p>
           </div>
         </header>
         <div className="table-wrap">
@@ -129,7 +129,7 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
             </thead>
             <tbody>
               {project.utilities.length === 0 && (
-                <tr><td colSpan={5} className="empty">No utilities defined. Add them on the Data tab.</td></tr>
+                <tr><td colSpan={5} className="empty">No utilities defined. Add them on the Energy targets tab.</td></tr>
               )}
               {project.utilities.map((u) => {
                 const t = analysis.utilityTargets.find((x) => x.id === u.id);
