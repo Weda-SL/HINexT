@@ -109,6 +109,53 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
         </section>
       </div>
 
+      <section className="card">
+        <header className="card-head">
+          <div>
+            <h2>Utility costs</h2>
+            <p className="muted">Duties come from the targeting on the Data tab. Enter the cost of each utility per kW of duty per year.</p>
+          </div>
+        </header>
+        <div className="table-wrap">
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th>Utility</th>
+                <th>Type</th>
+                <th className="r">Duty<br /><span className="unit">{c.pUnit}</span></th>
+                <th className="r">Unit cost<br /><span className="unit">$/kW·yr</span></th>
+                <th className="r">Annual cost<br /><span className="unit">$/yr</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {project.utilities.length === 0 && (
+                <tr><td colSpan={5} className="empty">No utilities defined. Add them on the Data tab.</td></tr>
+              )}
+              {project.utilities.map((u) => {
+                const t = analysis.utilityTargets.find((x) => x.id === u.id);
+                return (
+                  <tr key={u.id}>
+                    <td>{u.name}</td>
+                    <td><span className={`badge ${u.kind}`}>{u.kind === 'hot' ? 'Hot' : 'Cold'}</span></td>
+                    <td className="r">{t ? num(c.p(t.duty)) : '—'}</td>
+                    <td><NumberField ariaLabel={`Unit cost of ${u.name}`} value={u.cost} onCommit={(v) => dispatch({ type: 'utility/update', id: u.id, patch: { cost: v } })} /></td>
+                    <td className="r strong">{t ? money(t.opCost) : '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            {analysis.utilityTargets.length > 0 && (
+              <tfoot>
+                <tr>
+                  <td colSpan={4} className="r strong">Operating cost</td>
+                  <td className="r strong">{money(cost.operating)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </section>
+
       <div className="two-col">
         <section className="card">
           <h2>Capital cost model</h2>
@@ -166,7 +213,6 @@ export function TargetsView({ project, analysis, sweep, dispatch }: Props) {
             <dt>Annualised capital</dt><dd>{money(cost.capitalAnnual)}/yr</dd>
             <dt className="total">Total annual cost</dt><dd className="total">{money(cost.total)}/yr</dd>
           </dl>
-          <p className="hint">Utility costs are set per utility in the Data tab ($ per kW per year).</p>
         </section>
       </div>
 

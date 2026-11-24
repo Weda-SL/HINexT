@@ -3,7 +3,7 @@ import type { Project } from '../core/types';
 import type { Analysis } from '../core/analyse';
 import type { Action } from '../state/actions';
 import { NumberField } from './NumberField';
-import { conv, money, num } from './format';
+import { conv, num } from './format';
 import { ProfileDialog } from './ProfileDialog';
 import { CurvesView } from './CurvesView';
 import { ProblemTableView } from './ProblemTableView';
@@ -177,17 +177,15 @@ export function DataView({ project, analysis, dispatch }: Props) {
                 <th>Type</th>
                 <th className="r">T supply<br /><span className="unit">{c.tUnit}</span></th>
                 <th className="r">T target<br /><span className="unit">{c.tUnit}</span></th>
-                <th className="r">Cost<br /><span className="unit">$/kW·yr</span></th>
                 <th className="r">h<br /><span className="unit">kW/m²K</span></th>
                 <th className="r">ΔT contrib.<br /><span className="unit">K</span></th>
                 <th className="r">Duty<br /><span className="unit">{c.pUnit}</span></th>
-                <th className="r">Cost<br /><span className="unit">$/yr</span></th>
                 <th aria-label="Row actions" />
               </tr>
             </thead>
             <tbody>
               {project.utilities.length === 0 && (
-                <tr><td colSpan={10} className="empty">No utilities. Energy targets still work; costs need utilities.</td></tr>
+                <tr><td colSpan={8} className="empty">No utilities. Energy targets still work without them.</td></tr>
               )}
               {project.utilities.map((u) => {
                 const upd = (patch: Partial<typeof u>) => dispatch({ type: 'utility/update', id: u.id, patch });
@@ -208,7 +206,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
                     </td>
                     <td><NumberField ariaLabel="Supply temperature" value={c.t(u.tSupply)} onCommit={(v) => upd({ tSupply: c.tIn(v) })} /></td>
                     <td><NumberField ariaLabel="Target temperature" value={c.t(u.tTarget)} onCommit={(v) => upd({ tTarget: c.tIn(v) })} /></td>
-                    <td><NumberField ariaLabel="Cost" value={u.cost} onCommit={(v) => upd({ cost: v })} /></td>
                     <td><NumberField ariaLabel="Film coefficient" value={u.h} onCommit={(v) => upd({ h: Number.isNaN(v) ? undefined : v })} placeholder="—" /></td>
                     <td><DtCell value={u.dtCont} half={half} name={u.name} onChange={(dtCont) => upd({ dtCont })} /></td>
                     <td>
@@ -225,7 +222,6 @@ export function DataView({ project, analysis, dispatch }: Props) {
                         <span className="derived">—</span>
                       )}
                     </td>
-                    <td className="r">{ok ? money(t?.opCost ?? 0) : '—'}</td>
                     <td className="row-actions">
                       <button className="icon danger" title="Delete" aria-label={`Delete ${u.name}`} onClick={() => dispatch({ type: 'utility/delete', id: u.id })}>×</button>
                     </td>
