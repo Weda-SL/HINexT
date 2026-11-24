@@ -35,6 +35,9 @@ interface Props {
   onMatch?: (hot: string, cold: string, x: number) => void;
   onMove?: (id: string, x: number) => void;
   onAddUtility?: (stream: string) => void;
+  /** Side of the pinch being worked on; the other side is muted (only used when there is a pinch) */
+  section?: 'above' | 'below' | null;
+  onSection?: (s: 'above' | 'below' | null) => void;
   /** Delete a unit (shows a × on the selected unit and enables the Delete key) */
   onDelete?: (id: string) => void;
   /** Duty a heater/cooler would take on this stream (region-aware) */
@@ -59,7 +62,7 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, utilityDuty, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, section, onSection, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pending, setPending] = useState<{ stream: string; x: number } | null>(null);
@@ -89,7 +92,10 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPending(null);
+      if (e.key === 'Escape') {
+        if (pending) setPending(null);
+        else onSection?.(null);
+      }
       const t = e.target as HTMLElement | null;
       const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
       if ((e.key === 'Delete' || e.key === 'Backspace') && !typing && selected && onDelete) {
@@ -99,17 +105,20 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [selected, onDelete]);
+  }, [selected, onDelete, pending, onSection]);
 
   const toLocal = (e: React.PointerEvent | React.MouseEvent) => {
     const r = svgRef.current!.getBoundingClientRect();
     return ((e.clientX - r.left) / r.width) * W;
   };
 
+  const sections = pinch !== undefined && !!onSection;
+  const sideOf = (x: number): 'above' | 'below' => (x < PINCH_X ? 'above' : 'below');
   const clickStream = (s: ResolvedStream, e: React.MouseEvent) => {
     if (!onMatch) return;
     e.stopPropagation();
     const x = ix(toLocal(e));
+    if (sections && !pending) onSection!(sideOf(x));
     if (!pending) {
       setPending({ stream: s.id, x });
       return;
@@ -134,6 +143,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
   const startDrag = (u: NetUnit, e: React.PointerEvent) => {
     e.stopPropagation();
     onSelect(u.id);
+    if (sections) onSection!(sideOf(u.x));
     if (!onMove) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     setDrag({ id: u.id, x: u.x });
@@ -164,9 +174,13 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
         onPointerLeave={endDrag}
-        onClick={() => {
+        onClick={(e) => {
           setPending(null);
           onSelect(null);
+          if (sections) {
+            const p = toLocal(e);
+            if (p >= L - 20 && p <= W - R) onSection!(sideOf(ix(p)));
+          }
         }}
       >
         <rect x="0" y="0" width={W} height={H} fill="#ffffff" />
@@ -190,8 +204,28 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             <text x={px(PINCH_X) + 8} y={H - 10} fontSize="11" fill={PINCH}>
               cold {num(c.t(pinch - analysis.dtMin / 2))} {c.tUnit}
             </text>
-            <text x={px(0.25)} y={26} fontSize="11.5" fill={INK3} textAnchor="middle">above the pinch</text>
-            <text x={px(0.75)} y={26} fontSize="11.5" fill={INK3} textAnchor="middle">below the pinch</text>
+            {(['above', 'below'] as const).map((side) => {
+              const on = sections && section === side;
+              return (
+                <text
+                  key={side}
+                  x={px(side === 'above' ? 0.25 : 0.75)}
+                  y={26}
+                  fontSize="11.5"
+                  fontWeight={on ? 700 : 400}
+                  fill={on ? INK : INK3}
+                  textAnchor="middle"
+                  style={sections ? { cursor: 'pointer' } : undefined}
+                  onClick={(e) => {
+                    if (!sections) return;
+                    e.stopPropagation();
+                    onSection!(section === side ? null : side);
+                  }}
+                >
+                  {side} the pinch
+                </text>
+              );
+            })}
           </g>
         )}
 
@@ -265,6 +299,8 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
               {/* remaining duty at the stream end */}
               {sr && Math.abs(remaining) > 1e-6 && (() => {
                 const util = utilityDuty ? utilityDuty(s.id) : Math.max(0, remaining);
+                // with sections, heater pills belong to the above side and cooler pills to the below side
+                if (sections && remaining > 0 && util > 1e-9 && section !== (s.kind === 'cold' ? 'above' : 'below')) return null;
                 const canAdd = !!(editable && onAddUtility && util > 1e-9);
                 const over = remaining < 0;
                 const label = over
@@ -390,6 +426,20 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
             </>,
           );
         })}
+
+        {/* mute the side not being worked on */}
+        {sections && section && (
+          <rect
+            data-hover="1"
+            x={section === 'above' ? px(PINCH_X) + 1 : L - 4}
+            y={36}
+            width={section === 'above' ? px(1) - px(PINCH_X) + 4 : px(PINCH_X) - L + 3}
+            height={H - 64}
+            fill="#ffffff"
+            opacity={0.65}
+            pointerEvents="none"
+          />
+        )}
 
         {rows.length === 0 && (
           <text x={W / 2} y={H / 2} fontSize="13" fill={INK2} textAnchor="middle">

@@ -20,6 +20,8 @@ interface Props {
 export function DesignView({ project, analysis, net, dispatch }: Props) {
   const c = conv(project.settings.units);
   const [selected, setSelected] = useState<string | null>(null);
+  const [section, setSection] = useState<'above' | 'below' | null>(null);
+  const hasPinch = analysis.pt.pinches.length > 0;
   const units = project.network?.units ?? [];
   const streams = new Map(analysis.streams.map((s) => [s.id, s]));
   const utils = new Map(analysis.utilities.map((u) => [u.id, u]));
@@ -80,19 +82,20 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           <div>
             <h2>Grid diagram</h2>
             <p className="muted">
-              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. To delete a unit, click it and press the × above it or the Delete key. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them. Heaters only take the heat still needed above the pinch and coolers only the heat below it; the rest is left for exchangers.
+              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. To delete a unit, click it and press the × above it or the Delete key. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click the side of the pinch you are working on (or its label) to focus on it; the other side is muted. Heaters are offered when you work above the pinch and coolers below it: click a coloured pill for one stream or use Add heaters / Add coolers for all of them. Esc leaves the side.
             </p>
           </div>
           <div className="btn-row">
-            <button className="btn" onClick={() => addRemaining('cold')} disabled={!remainingOf('cold').length} title="Add a heater for each cold stream's unmatched heat above the pinch">
-              Add heaters
-            </button>
-            <button className="btn" onClick={() => addRemaining('hot')} disabled={!remainingOf('hot').length} title="Add a cooler for each hot stream's unmatched heat below the pinch">
-              Add coolers
-            </button>
-            <button className="btn ghost" disabled={!units.length} onClick={() => { dispatch({ type: 'network/set', units: [], label: 'Clear network' }); setSelected(null); }}>
-              Clear
-            </button>
+            {(!hasPinch || section === 'above') && (
+              <button className="btn" onClick={() => addRemaining('cold')} disabled={!remainingOf('cold').length} title="Add a heater for each cold stream's unmatched heat above the pinch">
+                Add heaters
+              </button>
+            )}
+            {(!hasPinch || section === 'below') && (
+              <button className="btn" onClick={() => addRemaining('hot')} disabled={!remainingOf('hot').length} title="Add a cooler for each hot stream's unmatched heat below the pinch">
+                Add coolers
+              </button>
+            )}
           </div>
         </header>
         <GridDiagram
@@ -109,6 +112,8 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
             setSelected(u.id);
           }}
           onMove={(id, x) => dispatch({ type: 'unit/update', id, patch: { x }, label: 'Move unit' })}
+          section={hasPinch ? section : null}
+          onSection={hasPinch ? setSection : undefined}
           onDelete={(id) => {
             dispatch({ type: 'unit/delete', id });
             setSelected(null);
@@ -143,7 +148,9 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           const id = newId('e');
           dispatch({ type: 'unit/add', unit: { id, kind: 'exchanger', hot: g.hot, cold: g.cold, load: +g.load.toFixed(6), x: g.x }, label: `Add exchanger ${streams.get(g.hot)?.name}–${streams.get(g.cold)?.name} (guide)` });
           setSelected(id);
+          if (hasPinch) setSection(g.region);
         }}
+        section={hasPinch ? section : null}
       />
 
       <div className="two-col">

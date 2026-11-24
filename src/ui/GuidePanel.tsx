@@ -10,9 +10,11 @@ interface Props {
   analysis: Analysis;
   net: NetworkResult;
   onAdd: (s: Suggestion) => void;
+  /** Side being worked on; the other column is muted */
+  section?: 'above' | 'below' | null;
 }
 
-export function GuidePanel({ project, analysis, net, onAdd }: Props) {
+export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
   const c = conv(project.settings.units);
   const guide = useMemo(() => designGuide(project, analysis, net), [project, analysis, net]);
   const [showAll, setShowAll] = useState(false);
@@ -31,7 +33,7 @@ export function GuidePanel({ project, analysis, net, onAdd }: Props) {
     else if (pinchPhase) status = 'Start at the pinch: these matches touch the pinch on both streams.';
     else status = 'Pinch matches done. Away from the pinch the choice is free, as long as ΔT ≥ ΔTmin.';
     return (
-      <div className="guide-col" key={r.region}>
+      <div className={`guide-col ${section && section !== r.region ? 'muted-col' : ''}`} key={r.region}>
         <h3>{title}</h3>
         <p className="hint">{status}</p>
         {guide.pinch && net.pinchCounts && (() => {

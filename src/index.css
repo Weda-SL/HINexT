@@ -309,3 +309,6 @@ input.num.calc:focus { color: var(--ink); }
 .guide-checks h3 { font-size: 13.5px; margin: 0 0 6px; }
 
 g:hover > .unit-del { stroke: #6b7280; }
+
+.guide-col.muted-col { opacity: 0.45; }
+.guide-col.muted-col:hover { opacity: 0.8; }
