@@ -232,7 +232,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
               <th />
               <th className="r">Design</th>
               <th className="r">Target</th>
-              <th className="r">Difference</th>
             </tr>
           </thead>
           <tbody>
@@ -241,9 +240,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
                 <td>{r.label}{r.unit ? <span className="unit"> ({r.unit})</span> : null}</td>
                 <td className="r strong">{r.design}</td>
                 <td className="r">{r.target}</td>
-                <td className={`r ${r.diff !== undefined && r.diff > 1e-6 ? 'warn' : ''}`}>
-                  {r.diff === undefined || !Number.isFinite(r.diff) ? '—' : r.label === 'Total annual cost' ? money(r.diff) : (r.diff > 0 ? '+' : '') + num(r.diff)}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -252,7 +248,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           {net.complete
             ? 'All stream duties are met.'
             : units.length
-              ? 'The network is not complete yet: see the checks below.'
+              ? 'The network is not complete yet: some streams still have unmatched duty.'
               : 'No units yet.'}
         </p>
       </section>
