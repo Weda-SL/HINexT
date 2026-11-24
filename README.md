@@ -1,3 +1,5 @@
+<p><img src="docs/brand/hinext-logo.svg" alt="HINexT" height="56"></p>
+
 # HINexT
 
 **HINexT** is a free, open-source, browser-based tool for **Pinch Analysis** and **Heat Exchanger Network (HEN) design**.

@@ -12,12 +12,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['favicon.svg', 'fonts/*.ttf', 'fonts/*.txt'],
+      includeAssets: ['favicon.svg', 'favicon.ico', 'logo.svg', 'apple-touch-icon.png', 'fonts/*.ttf', 'fonts/*.txt'],
+      manifestFilename: 'site.webmanifest',
       manifest: {
         name: 'HINexT — Pinch Analysis',
         short_name: 'HINexT',
         description: 'Free, open-source pinch analysis: targets, heat exchanger network design and evolution, in the browser.',
-        theme_color: '#0b0b0b',
+        theme_color: '#ffffff',
         background_color: '#f6f5f3',
         display: 'standalone',
         start_url: '.',
@@ -25,12 +26,11 @@ export default defineConfig({
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ttf,txt,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,ttf,txt,woff2}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         cleanupOutdatedCaches: true,
       },
