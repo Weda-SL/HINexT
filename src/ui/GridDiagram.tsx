@@ -35,6 +35,8 @@ interface Props {
   onMatch?: (hot: string, cold: string, x: number) => void;
   onMove?: (id: string, x: number) => void;
   onAddUtility?: (stream: string) => void;
+  /** Duty a heater/cooler would take on this stream (region-aware) */
+  utilityDuty?: (stream: string) => number;
   highlight?: Highlight;
   /** Show the remaining-duty buttons at the stream ends */
   editable?: boolean;
@@ -55,7 +57,7 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pending, setPending] = useState<{ stream: string; x: number } | null>(null);
@@ -251,23 +253,38 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
                 <circle cx={px(pending.x)} cy={y} r={9} fill="none" stroke={PINCH} strokeWidth="2" strokeDasharray="3 2" data-hover="1" />
               )}
               {/* remaining duty at the stream end */}
-              {sr && Math.abs(remaining) > 1e-6 && (
-                <g
-                  transform={`translate(${W - R + 22}, ${y})`}
-                  style={{ cursor: editable && onAddUtility && remaining > 0 ? 'pointer' : 'default' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (editable && remaining > 0) onAddUtility?.(s.id);
-                  }}
-                >
-                  <rect x={0} y={-10} width={118} height={20} rx={10} fill={remaining > 0 ? (s.kind === 'hot' ? '#e8f1fc' : '#fff0e8') : '#fdecea'} />
-                  <text x={59} y={4} fontSize="11" fontWeight="600" textAnchor="middle" fill={remaining > 0 ? (s.kind === 'hot' ? '#1d5aa6' : '#a8461c') : ERR}>
-                    {remaining > 0
-                      ? `${editable ? '+ ' : ''}${s.kind === 'hot' ? 'cool' : 'heat'} ${num(c.p(remaining))}`
-                      : `over by ${num(c.p(-remaining))}`}
-                  </text>
-                </g>
-              )}
+              {sr && Math.abs(remaining) > 1e-6 && (() => {
+                const util = utilityDuty ? utilityDuty(s.id) : Math.max(0, remaining);
+                const canAdd = !!(editable && onAddUtility && util > 1e-9);
+                const over = remaining < 0;
+                const label = over
+                  ? `over by ${num(c.p(-remaining))}`
+                  : util > 1e-9
+                    ? `${editable ? '+ ' : ''}${s.kind === 'hot' ? 'cool' : 'heat'} ${num(c.p(util))}`
+                    : `${num(c.p(remaining))} to match`;
+                const bg = over ? '#fdecea' : util > 1e-9 ? (s.kind === 'hot' ? '#e8f1fc' : '#fff0e8') : '#f1f0ed';
+                const fg = over ? ERR : util > 1e-9 ? (s.kind === 'hot' ? '#1d5aa6' : '#a8461c') : INK2;
+                return (
+                  <g
+                    transform={`translate(${W - R + 22}, ${y})`}
+                    style={{ cursor: canAdd ? 'pointer' : 'default' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (canAdd) onAddUtility!(s.id);
+                    }}
+                  >
+                    <title>
+                      {util > 1e-9 && util < remaining - 1e-6
+                        ? `${num(c.p(util))} on the ${s.kind === 'hot' ? 'below' : 'above'}-pinch side for a ${s.kind === 'hot' ? 'cooler' : 'heater'}; ${num(c.p(remaining - util))} still to match with exchangers`
+                        : util > 1e-9
+                          ? `Add a ${s.kind === 'hot' ? 'cooler' : 'heater'} for this duty`
+                          : `Unmatched heat ${s.kind === 'hot' ? 'above' : 'below'} the pinch: match it with exchangers, not a ${s.kind === 'hot' ? 'cooler' : 'heater'}`}
+                    </title>
+                    <rect x={0} y={-10} width={118} height={20} rx={10} fill={bg} />
+                    <text x={59} y={4} fontSize="11" fontWeight="600" textAnchor="middle" fill={fg}>{label}</text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}

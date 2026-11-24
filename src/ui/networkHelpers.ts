@@ -20,13 +20,15 @@ export function chooseUtility(analysis: Analysis, streamId: string): string | un
 export function utilityUnitFor(analysis: Analysis, net: NetworkResult, streamId: string): NetUnit | null {
   const s = analysis.streams.find((x) => x.id === streamId);
   const sr = net.streams.get(streamId);
-  if (!s || !sr || sr.remaining <= 1e-9) return null;
+  if (!s || !sr) return null;
+  const load = utilityDuty(analysis, net, streamId);
+  if (load <= 1e-9) return null;
   const [a, b] = streamSpan(s, analysis.pt.pinches[0]);
   const utility = chooseUtility(analysis, streamId);
   if (!utility) return null;
   return s.kind === 'cold'
-    ? { id: newId('h'), kind: 'heater', cold: s.id, utility, load: +sr.remaining.toFixed(6), x: +(a + 0.03).toFixed(4) }
-    : { id: newId('c'), kind: 'cooler', hot: s.id, utility, load: +sr.remaining.toFixed(6), x: +(b - 0.03).toFixed(4) };
+    ? { id: newId('h'), kind: 'heater', cold: s.id, utility, load: +load.toFixed(6), x: +(a + 0.03).toFixed(4) }
+    : { id: newId('c'), kind: 'cooler', hot: s.id, utility, load: +load.toFixed(6), x: +(b - 0.03).toFixed(4) };
 }
 
 /** A new exchanger between two streams at x, loaded by the tick-off heuristic. */
@@ -44,4 +46,17 @@ export function exchangerFor(analysis: Analysis, net: NetworkResult, hot: string
 
 export function networkUnits(p: Project): NetUnit[] {
   return p.network?.units ?? [];
+}
+
+/**
+ * Duty a heater or cooler should take: heaters only above the pinch (cold
+ * streams' unmatched heat there), coolers only below it (hot streams' unmatched
+ * heat there). Without a pinch, the whole remaining duty.
+ */
+export function utilityDuty(analysis: Analysis, net: NetworkResult, streamId: string): number {
+  const s = analysis.streams.find((x) => x.id === streamId);
+  const sr = net.streams.get(streamId);
+  if (!s || !sr) return 0;
+  if (analysis.pt.pinches.length === 0) return Math.max(0, sr.remaining);
+  return Math.max(0, s.kind === 'cold' ? sr.remainingAbove : sr.remainingBelow);
 }

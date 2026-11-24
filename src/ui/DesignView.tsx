@@ -6,7 +6,7 @@ import { tickOffLoad, unitName, unitTags, type NetworkResult } from '../core/net
 import { GridDiagram } from './GridDiagram';
 import { NumberField } from './NumberField';
 import { conv, money, num } from './format';
-import { exchangerFor, utilityUnitFor } from './networkHelpers';
+import { exchangerFor, utilityDuty, utilityUnitFor } from './networkHelpers';
 
 interface Props {
   project: Project;
@@ -26,7 +26,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
   const selRes = net.units.find((r) => r.id === selected);
   const pc = net.pinchCounts;
 
-  const remainingOf = (kind: 'hot' | 'cold') => analysis.streams.filter((s) => s.kind === kind && (net.streams.get(s.id)?.remaining ?? 0) > 1e-9);
+  const remainingOf = (kind: 'hot' | 'cold') => analysis.streams.filter((s) => s.kind === kind && utilityDuty(analysis, net, s.id) > 1e-9);
   const addRemaining = (kind: 'hot' | 'cold') => {
     const extra = remainingOf(kind).map((s) => utilityUnitFor(analysis, net, s.id)).filter((u) => u !== null);
     if (!extra.length) return;
@@ -59,14 +59,14 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           <div>
             <h2>Grid diagram</h2>
             <p className="muted">
-              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them.
+              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click a coloured pill at the right to add a heater or cooler for one stream's remaining duty, or use Add heaters / Add coolers for all of them. Heaters only take the heat still needed above the pinch and coolers only the heat below it; the rest is left for exchangers.
             </p>
           </div>
           <div className="btn-row">
-            <button className="btn" onClick={() => addRemaining('cold')} disabled={!remainingOf('cold').length} title="Add a heater on every cold stream that still needs heat">
+            <button className="btn" onClick={() => addRemaining('cold')} disabled={!remainingOf('cold').length} title="Add a heater for each cold stream's unmatched heat above the pinch">
               Add heaters
             </button>
-            <button className="btn" onClick={() => addRemaining('hot')} disabled={!remainingOf('hot').length} title="Add a cooler on every hot stream that still needs cooling">
+            <button className="btn" onClick={() => addRemaining('hot')} disabled={!remainingOf('hot').length} title="Add a cooler for each hot stream's unmatched heat below the pinch">
               Add coolers
             </button>
             <button className="btn ghost" disabled={!units.length} onClick={() => { dispatch({ type: 'network/set', units: [], label: 'Clear network' }); setSelected(null); }}>
@@ -81,6 +81,7 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
           selected={selected}
           onSelect={setSelected}
           editable
+          utilityDuty={(sid) => utilityDuty(analysis, net, sid)}
           onMatch={(hot, cold, x) => {
             const u = exchangerFor(analysis, net, hot, cold, x);
             dispatch({ type: 'unit/add', unit: u, label: `Add exchanger ${streams.get(hot)?.name}–${streams.get(cold)?.name}` });
