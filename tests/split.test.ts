@@ -127,6 +127,12 @@ describe('design guide: placement', () => {
         }
         const next = g.regions.flatMap((r) => r.suggestions).find((s) => s.feasible);
         if (!next) break;
+        // working away from the pinch: left of everything above it, right of everything below it
+        const before = p.network?.units ?? [];
+        const aboveXs = before.filter((u) => u.x < 0.5).map((u) => u.x);
+        const belowXs = before.filter((u) => u.x >= 0.5).map((u) => u.x);
+        if (next.x < 0.5 && aboveXs.length) expect(next.x).toBeLessThan(Math.min(...aboveXs));
+        if (next.x >= 0.5 && belowXs.length) expect(next.x).toBeGreaterThan(Math.max(...belowXs));
         p = apply(p, { type: 'unit/add', unit: { id: `G${step}`, kind: 'exchanger', hot: next.hot, cold: next.cold, load: next.load, x: next.x, hotBranch: next.hotBranch, coldBranch: next.coldBranch } });
       }
       const xs = p.network!.units.map((u) => u.x).sort((x, y) => x - y);

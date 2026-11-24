@@ -130,7 +130,7 @@ export function designGuide(project: Project, analysis: Analysis, net: NetworkRe
         if (c.rem <= TOL) continue;
         const pinchMatch = hasPinch && h.needsPinch && c.needsPinch;
         const load = Math.min(h.rem, c.rem);
-        const x = placeX(units, h.s.id, c.s.id, isAbove, pinchMatch, !hasPinch);
+        const x = placeX(units, h.s.id, c.s.id, isAbove, pinchMatch, !hasPinch, h.branch, c.branch);
         const trial: NetUnit = { id: '__guide__', kind: 'exchanger', hot: h.s.id, cold: c.s.id, load, x, hotBranch: h.branch, coldBranch: c.branch };
         const tNet = analyseNetwork({ ...project, network: { ...project.network, units: [...units, trial] } }, analysis, 'pinch');
         const r = tNet.units.find((u) => u.id === '__guide__')!;
@@ -258,28 +258,32 @@ function suggestSplit(region: Region, hot: End[], cold: End[], project: Project)
  * existing units, away from the pinch. The spot is then moved to the nearest
  * free position, so the new unit does not sit on top of another one.
  */
-function placeX(units: NetUnit[], hot: string, cold: string, above: boolean, pinchMatch: boolean, noPinch: boolean): number {
-  const xs = units.filter((u) => u.hot === hot || u.cold === cold).map((u) => u.x);
+function placeX(units: NetUnit[], hot: string, cold: string, above: boolean, pinchMatch: boolean, noPinch: boolean, hotBranch?: number, coldBranch?: number): number {
   const GAP = 0.035;
+  // units on the same stream (and the same branch, when split) as the new match
+  const same = (u: NetUnit) =>
+    (u.hot === hot && (hotBranch === undefined || (u.hotBranch ?? 0) === hotBranch)) || (u.cold === cold && (coldBranch === undefined || (u.coldBranch ?? 0) === coldBranch));
+  const xs = units.filter(same).map((u) => u.x);
   if (noPinch) {
-    const max = xs.length ? Math.max(...xs) : 0.3;
+    const max = units.length ? Math.max(...units.map((u) => u.x)) : 0.3;
     return free(units, Math.min(0.95, max + 0.08), Math.min(0.95, max + GAP), 0.97);
   }
-  const side = xs.filter((x) => (above ? x < PINCH_X : x >= PINCH_X));
+  // working away from the pinch: above it, new units go left of every unit already there; below it, right of them
+  const sideAll = units.filter((u) => (above ? u.x < PINCH_X : u.x >= PINCH_X)).map((u) => u.x);
+  const sideMine = xs.filter((x) => (above ? x < PINCH_X : x >= PINCH_X));
   if (above) {
-    if (pinchMatch) {
-      const last = Math.max(0.3, ...side);
-      return free(units, (last + PINCH_X) / 2, Math.min(last + GAP, PINCH_X - 0.015), PINCH_X - 0.015);
-    }
-    const min = side.length ? Math.min(...side) : 0.4;
-    return free(units, Math.max(0.04, min - 0.07), 0.03, Math.max(0.03, min - GAP));
+    const edge = sideAll.length ? Math.min(...sideAll) : PINCH_X;
+    const want = sideAll.length ? edge - 0.07 : pinchMatch ? 0.42 : 0.4;
+    // a pinch match must still sit nearer the pinch than other units on its own streams
+    const minX = pinchMatch && sideMine.length ? Math.max(...sideMine) + GAP : 0.03;
+    if (minX <= edge - GAP) return free(units, Math.max(want, minX), minX, Math.min(edge - GAP, PINCH_X - 0.015));
+    return free(units, (Math.max(...sideMine) + PINCH_X) / 2, minX, PINCH_X - 0.015);
   }
-  if (pinchMatch) {
-    const first = Math.min(0.7, ...side);
-    return free(units, (first + PINCH_X) / 2, PINCH_X + 0.015, Math.max(first - GAP, PINCH_X + 0.015));
-  }
-  const max = side.length ? Math.max(...side) : 0.6;
-  return free(units, Math.min(0.96, max + 0.07), Math.min(0.97, max + GAP), 0.97);
+  const edge = sideAll.length ? Math.max(...sideAll) : PINCH_X;
+  const want = sideAll.length ? edge + 0.07 : pinchMatch ? 0.58 : 0.6;
+  const maxX = pinchMatch && sideMine.length ? Math.min(...sideMine) - GAP : 0.97;
+  if (maxX >= edge + GAP) return free(units, Math.min(want, maxX), Math.max(edge + GAP, PINCH_X + 0.015), maxX);
+  return free(units, (Math.min(...sideMine) + PINCH_X) / 2, PINCH_X + 0.015, maxX);
 }
 
 /** The position nearest to `want` within [lo, hi] that is at least a small gap away from every existing unit. */
