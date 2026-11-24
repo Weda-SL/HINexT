@@ -4,7 +4,7 @@
 
 It is a modern successor to HINT (Heat INTegration), the well-loved teaching tool that no longer runs on today's 64-bit computers. The name keeps both ideas: **HINT** + **NEXT**.
 
-> **Status:** Stage 1A (targeting) — v0.1.0. MER design on the grid diagram (1B), network evolution (1C) and the public v1.0 (1D) follow. Watch or star the repository to follow progress.
+> **Status:** Stage 1A (targeting) is complete; Stage 1B (MER design) and 1C (network evolution) are in development. The public v1.0 (1D) follows. Watch or star the repository to follow progress.
 
 ## Why HINexT?
 
@@ -28,6 +28,12 @@ It is a modern successor to HINT (Heat INTegration), the well-loved teaching too
 - **Units:** °C or K, kW or MW (all maths in SI internally).
 - **Saving:** autosave in the browser, `.pinch` file save/open (also drag-and-drop), undo/redo with named steps.
 
+## In development (Stages 1B and 1C)
+
+- **HEN design tab:** grid diagram with the pinch line. Click a hot and then a cold stream to place an exchanger (its load starts at the tick-off value); drag units to reorder them; add heaters and coolers for the remaining duty. Temperatures between units are recalculated from the loads, and the design is checked live: ΔTmin violations and temperature crosses, heat across the pinch, heaters below and coolers above the pinch, the CP rule at the pinch, the stream-count rule, and over-satisfied streams. A design-vs-targets table compares utilities, units, area and total annual cost. A design guide applies the pinch design heuristics (start at the pinch, CP and number rules, tick-off) and lists the next feasible matches, each tried on the network before it is suggested. Streams can be split into parallel branches over one side of the pinch (click a stream's name); each branch carries a share of the flow, is matched on its own and mixes back at the end of that side. When the number or CP rule cannot be met at the pinch, the guide suggests the split.
+- **Optimization tab** (network evolution): loop count from Euler's theorem (L = U − N + S), every loop and every hot-to-cold utility path, loop breaking (removes the smallest unit), path relaxation with a solver for the x that restores ΔTmin, a live preview, and a trade-off history table with step-back.
+- Network evolution does not handle split streams yet.
+
 ## Validation
 
 The calculation module is covered by automated tests (`npm test`). Energy targets are checked against published values:
@@ -37,6 +43,11 @@ The calculation module is covered by automated tests (`npm test`). Energy target
 | Four-stream problem (Kemp, 2007; Linnhoff et al., 1982) | 10 K | 20 kW | 60 kW | 90 / 80 °C |
 | Linnhoff & Hindmarsh (1983) | 20 K | 107.5 kW | 40 kW | 90 / 70 °C |
 | Smith (2016), two-reactor process | 10 K | 750 kW | 1000 kW | 150 / 140 °C |
+| Smith (2016), stream splitting example | 20 K | 9.2 MW | 6.4 MW | 520 / 500 °C |
+
+The network tests reproduce the Kemp four-stream MER design (6 units, QH = 20 kW, QC = 60 kW) and its textbook evolution: breaking the Hot 4–Cold 1 loop (x = 30 kW) and relaxing along steam → Cold 1 → Hot 4 → cooling water, where x = 7.5 kW restores ΔTmin (QH = 27.5 kW, QC = 67.5 kW).
+
+The stream-splitting tests reproduce Smith's published split design (stream 1 split above the pinch into CP 0.040 and 0.005 MW/K branches; 7 units at QH = 9.2 MW, QC = 6.4 MW), and the design guide suggests that same split. Following the guide on Linnhoff & Hindmarsh (1983) splits H2 below the pinch (CP 3 + 5) and reaches the energy targets.
 
 Other tests check the Problem Table interval balances and cascade, composite and GCC end points, multiple-utility placement, the Bath formula against hand calculations, the minimum-units target, annualisation, every capital cost model, supertargeting, threshold problems, individual ΔT contributions and the `.pinch` file round trip.
 
@@ -85,7 +96,8 @@ npm run build      # production build in dist/
 Stack: React + TypeScript + Vite, tested with Vitest. No runtime dependencies beyond React.
 
 ```
-src/core/      pure pinch maths (no UI): streams, cascade, utilities, composites, area, units, costs, analyse
+src/core/      pure pinch maths (no UI): streams, cascade, utilities, composites, area, units, costs, analyse,
+              network (1B design checks), evolution (1C loops, paths, shifts)
 src/state/     named actions, undo/redo history, storage interface (save/load), .pinch files
 src/ui/        React components; all diagrams are SVG
 src/examples/  benchmark cases

@@ -80,3 +80,17 @@ export function capitalCost(model: CapitalModel, input: CapitalInput, econ: Econ
   if (!Number.isFinite(capital)) return { capital: NaN, annual: NaN, error: 'Capital cost is not a finite number.' };
   return { capital, annual: capital * f };
 }
+
+/** Installed cost of one unit of the given kind with area A (m²). */
+export function unitCapital(model: CapitalModel, kind: 'exchanger' | 'heater' | 'cooler', area: number): number {
+  switch (model.kind) {
+    case 'power':
+      return perUnit(model.params, area);
+    case 'linear':
+      return model.a + model.b * area;
+    case 'separate':
+      return perUnit(kind === 'heater' ? model.heater : kind === 'cooler' ? model.cooler : model.exchanger, area);
+    case 'custom':
+      return compileExpression(model.expression)(area);
+  }
+}

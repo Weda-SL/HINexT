@@ -1,7 +1,7 @@
 import type { Project } from '../core/types';
 import { parseFile, serialise, toFile } from '../core/project';
 
-export const APP_VERSION = '0.1.0-1A';
+export const APP_VERSION = '0.2.0-dev';
 
 /**
  * The app saves and loads only through this interface, without knowing where

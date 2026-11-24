@@ -9,12 +9,17 @@ import { DataView } from './ui/DataView';
 import { TargetsView } from './ui/TargetsView';
 import { NumberField } from './ui/NumberField';
 import { AppMenu } from './ui/AppMenu';
+import { DesignView } from './ui/DesignView';
+import { EvolutionView } from './ui/EvolutionView';
+import { analyseNetwork } from './core/network';
 import { HistoryButton } from './ui/HistoryButton';
 
-type Tab = 'data' | 'targets';
+type Tab = 'data' | 'targets' | 'design' | 'evolution';
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'data', label: 'Data' },
-  { id: 'targets', label: 'Targets & costs' },
+  { id: 'data', label: 'Energy targets' },
+  { id: 'targets', label: 'Cost targets' },
+  { id: 'design', label: 'HEN design' },
+  { id: 'evolution', label: 'Optimization' },
 ];
 
 const store = new LocalStore();
@@ -70,6 +75,8 @@ export default function App() {
   }, [toast]);
 
   const analysis = useMemo(() => analyse(project), [project]);
+  const net = useMemo(() => analyseNetwork(project, analysis), [project, analysis]);
+  const designNet = useMemo(() => analyseNetwork(project, analysis, 'pinch'), [project, analysis]);
   const deferred = useDeferredValue(project);
   const sweep = useMemo(() => (tab === 'targets' ? supertarget(deferred) : null), [deferred, tab]);
   const errors = analysis.issues.filter((i) => i.level === 'error').length;
@@ -98,19 +105,13 @@ export default function App() {
         if (f) openFile(f);
       }}
     >
-      <header className="topbar">
+      <div className="brandbar">
         <div className="brand" title="HINexT — the next HINT">
           <span className="b">HIN</span><span className="l">ex</span><span className="b">T</span>
         </div>
-        <input
-          className="project-name"
-          aria-label="Project name"
-          defaultValue={project.name}
-          key={project.id + project.name}
-          onBlur={(e) => e.target.value !== project.name && dispatch({ type: 'project/rename', name: e.target.value })}
-          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-        />
-        <nav className="toolbar" aria-label="Project">
+      </div>
+      <header className="topbar">
+        <nav className="toolbar toolbar-left" aria-label="Project">
           <AppMenu
             onNew={() => dispatch({ type: 'project/load', project: emptyProject(), label: 'New project' })}
             onFile={() => fileInput.current?.click()}
@@ -130,7 +131,16 @@ export default function App() {
             onOne={() => send({ type: 'redo' })}
             onMany={(count) => send({ type: 'jump', index: hist.past.length + count })}
           />
-          <span className="sep" />
+        </nav>
+        <input
+          className="project-name"
+          aria-label="Project name"
+          defaultValue={project.name}
+          key={project.id + project.name}
+          onBlur={(e) => e.target.value !== project.name && dispatch({ type: 'project/rename', name: e.target.value })}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+        />
+        <nav className="toolbar" aria-label="Settings">
           <select className="btn ghost" aria-label="Temperature unit" value={project.settings.units.temperature} onChange={(e) => dispatch({ type: 'settings/units', units: { temperature: e.target.value as 'C' | 'K' } })}>
             <option value="C">°C</option>
             <option value="K">K</option>
@@ -160,11 +170,13 @@ export default function App() {
 
       <main className="content">
         {tab === 'data' && <DataView project={project} analysis={analysis} dispatch={dispatch} />}
+        {tab === 'design' && <DesignView project={project} analysis={analysis} net={designNet} dispatch={dispatch} />}
+        {tab === 'evolution' && <EvolutionView project={project} analysis={analysis} net={net} dispatch={dispatch} />}
         {tab === 'targets' && <TargetsView project={project} analysis={analysis} sweep={sweep} dispatch={dispatch} />}
       </main>
 
       <footer className="footer">
-        HINexT {APP_VERSION} · Stage 1A (targeting) · MIT licence · Projects are saved in this browser only; use Save for a .pinch file.
+        HINexT {APP_VERSION} | MIT licence | © Weda 2026
       </footer>
       {toast && <div className="toast" role="status">{toast}</div>}
     </div>

@@ -97,4 +97,81 @@ export const EXAMPLES: Example[] = [
       economics: defaultEconomics(),
     }),
   },
+  {
+    key: 'kemp-4-mer',
+    title: 'Four-stream problem with its MER network (Kemp)',
+    source: 'As above, with the MER design from the pinch design method (6 units, QH = 20 kW, QC = 60 kW). Use it to try network optimization on the Optimization tab (loops and utility paths).',
+    published: { dtMin: 10, qh: 20, qc: 60, hotPinch: 90, coldPinch: 80 },
+    build: () => {
+      const base = EXAMPLES[0].build();
+      return {
+        ...base,
+        id: 'ex_kemp4_mer',
+        name: 'Four-stream problem — MER network (Kemp)',
+        description: 'Textbook MER design for the four-stream problem; one loop (Hot 4–Cold 1 above and below the pinch).',
+        network: {
+          units: [
+            { id: 'E1', kind: 'exchanger', hot: 's2', cold: 's3', load: 240, x: 0.3 },
+            { id: 'E2', kind: 'exchanger', hot: 's4', cold: 's1', load: 90, x: 0.38 },
+            { id: 'H1', kind: 'heater', cold: 's1', utility: 'u1', load: 20, x: 0.08 },
+            { id: 'E3', kind: 'exchanger', hot: 's2', cold: 's1', load: 90, x: 0.6 },
+            { id: 'E4', kind: 'exchanger', hot: 's4', cold: 's1', load: 30, x: 0.72 },
+            { id: 'C1', kind: 'cooler', hot: 's4', utility: 'u2', load: 60, x: 0.9 },
+          ],
+        },
+      };
+    },
+  },
+  {
+    key: 'smith-split',
+    title: 'Stream splitting example (Smith)',
+    source:
+      'Smith, R. (2016) Chemical Process Design and Integration, 2nd ed., Wiley — stream splitting example in the heat exchanger network design chapter (ΔTmin = 20 K). Utility temperatures and costs and film coefficients are illustrative.',
+    published: { dtMin: 20, qh: 9200, qc: 6400, hotPinch: 520, coldPinch: 500 },
+    build: () => ({
+      schemaVersion: SCHEMA_VERSION,
+      id: 'ex_smith_split',
+      name: 'Stream splitting example (Smith)',
+      description: 'ΔTmin = 20 K gives QHmin = 9.2 MW, QCmin = 6.4 MW, pinch 520/500 °C. Above the pinch, stream 1 (CP 0.045) is larger than both cold streams, so it has to be split.',
+      streams: [
+        { id: 's1', name: 'Hot 1', tSupply: 720, tTarget: 320, spec: 'cp', cp: 45, h: 0.5 },
+        { id: 's2', name: 'Hot 2', tSupply: 520, tTarget: 220, spec: 'cp', cp: 40, h: 0.5 },
+        { id: 's3', name: 'Cold 3', tSupply: 300, tTarget: 900, spec: 'cp', cp: 43, h: 0.5 },
+        { id: 's4', name: 'Cold 4', tSupply: 200, tTarget: 550, spec: 'cp', cp: 20, h: 0.5 },
+      ],
+      utilities: [
+        { id: 'u1', name: 'Furnace', kind: 'hot', tSupply: 1000, tTarget: 1000, cost: 200, h: 0.5 },
+        { id: 'u2', name: 'Cooling water', kind: 'cold', tSupply: 20, tTarget: 30, cost: 10, h: 1 },
+      ],
+      settings: { ...settings(20, 60), units: { temperature: 'C', power: 'MW' } },
+      economics: defaultEconomics(),
+    }),
+  },
+  {
+    key: 'smith-split-mer',
+    title: 'Stream splitting example with its MER network (Smith)',
+    source: 'As above, with the published MER design: stream 1 split above the pinch into CP 0.040 and 0.005 branches (7 units, QH = 9.2 MW, QC = 6.4 MW).',
+    published: { dtMin: 20, qh: 9200, qc: 6400, hotPinch: 520, coldPinch: 500 },
+    build: () => {
+      const base = EXAMPLES.find((e) => e.key === 'smith-split')!.build();
+      return {
+        ...base,
+        id: 'ex_smith_split_mer',
+        name: 'Stream splitting example — MER network (Smith)',
+        description: 'Published MER design with stream 1 split above the pinch (CP 0.040 to stream 3, CP 0.005 to stream 4).',
+        network: {
+          splits: [{ id: 'sp1', stream: 's1', side: 'above', fractions: [40 / 45, 5 / 45] }],
+          units: [
+            { id: 'E1', kind: 'exchanger', hot: 's1', cold: 's3', load: 8000, x: 0.38, hotBranch: 0 },
+            { id: 'E2', kind: 'exchanger', hot: 's1', cold: 's4', load: 1000, x: 0.25, hotBranch: 1 },
+            { id: 'H1', kind: 'heater', cold: 's3', utility: 'u1', load: 9200, x: 0.06 },
+            { id: 'E3', kind: 'exchanger', hot: 's1', cold: 's3', load: 8600, x: 0.6 },
+            { id: 'E4', kind: 'exchanger', hot: 's2', cold: 's4', load: 6000, x: 0.68 },
+            { id: 'C1', kind: 'cooler', hot: 's1', utility: 'u2', load: 400, x: 0.88 },
+            { id: 'C2', kind: 'cooler', hot: 's2', utility: 'u2', load: 6000, x: 0.88 },
+          ],
+        },
+      };
+    },
+  },
 ];
