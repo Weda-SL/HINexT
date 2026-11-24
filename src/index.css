@@ -328,3 +328,4 @@ g:hover > .unit-del { stroke: #6b7280; }
 .unit-panel .kv-minor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px; }
 .unit-panel .kv-minor > div { display: flex; gap: 6px; }
 .unit-panel .kv-minor dd { margin-right: 0; }
+.chart-actions { align-items: center; gap: 6px; }

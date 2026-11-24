@@ -38,6 +38,8 @@ interface Props {
   /** Side of the pinch being worked on; the other side is muted (only used when there is a pinch) */
   section?: 'above' | 'below' | null;
   onSection?: (s: 'above' | 'below' | null) => void;
+  /** Extra controls shown left of the download button */
+  actions?: React.ReactNode;
   /** Delete a unit (shows a × on the selected unit and enables the Delete key) */
   onDelete?: (id: string) => void;
   /** Duty a heater/cooler would take on this stream (region-aware) */
@@ -62,7 +64,7 @@ export function streamSpan(s: ResolvedStream, pinch: number | undefined): [numbe
   return [left, right];
 }
 
-export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, section, onSection, utilityDuty, highlight, editable }: Props) {
+export function GridDiagram({ project, analysis, net, selected, onSelect, onMatch, onMove, onAddUtility, onDelete, section, onSection, actions, utilityDuty, highlight, editable }: Props) {
   const c = conv(project.settings.units);
   const svgRef = useRef<SVGSVGElement>(null);
   const [pending, setPending] = useState<{ stream: string; x: number } | null>(null);
@@ -448,6 +450,7 @@ export function GridDiagram({ project, analysis, net, selected, onSelect, onMatc
         )}
       </svg>
       <figcaption className="chart-actions">
+        {actions}
         <DownloadMenu
           label="Download grid diagram"
           onPdf={() => svgRef.current && saveSvgPdf(svgRef.current, W, H, filename)}
