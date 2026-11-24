@@ -92,9 +92,6 @@ export function DesignView({ project, analysis, net, dispatch }: Props) {
         <header className="card-head">
           <div>
             <h2>Grid diagram</h2>
-            <p className="muted">
-              Click a hot stream and then a cold stream to place an exchanger there; its load starts at the tick-off value (the smaller of the two streams' unmatched heat on that side of the pinch). Drag units sideways to reorder them. To delete a unit, click it and press the × above it or the Delete key. Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures. Click the side of the pinch you are working on (or its label) to focus on it; the other side is muted. Heaters are offered when you work above the pinch and coolers below it: click a coloured pill for one stream or use Add heaters / Add coolers for all of them. Esc leaves the side.
-            </p>
           </div>
         </header>
         <GridDiagram

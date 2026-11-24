@@ -329,3 +329,6 @@ g:hover > .unit-del { stroke: #6b7280; }
 .unit-panel .kv-minor > div { display: flex; gap: 6px; }
 .unit-panel .kv-minor dd { margin-right: 0; }
 .chart-actions { align-items: center; gap: 6px; }
+
+.guide-help { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; align-items: start; }
+.guide-help ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; }

@@ -93,6 +93,18 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
         </div>
       </header>
       <div className="guide-grid">{guide.regions.map(region)}</div>
+      <div className="guide-help">
+      <details className="guide-rules">
+        <summary>Using the grid</summary>
+        <ul>
+          <li>Click a hot stream, then a cold stream, to place an exchanger there. Its load starts at the tick-off value: the smaller of the two streams' unmatched heat on that side of the pinch.</li>
+          <li>Drag a unit sideways to reorder it.</li>
+          <li>To delete a unit, click it and press the × above it or the Delete key.</li>
+          <li>Above and below the pinch are designed separately, so on each side the streams start from the pinch temperatures.</li>
+          <li>Click the side you are working on, or its label, to focus on it; the other side is muted. Click outside the grid or press Esc to leave it.</li>
+          <li>Heaters are offered above the pinch and coolers below it: click a coloured pill for one stream, or use Add heaters / Add coolers for all of them.</li>
+        </ul>
+      </details>
       <details className="guide-rules">
         <summary>The rules being applied</summary>
         <ol>
@@ -104,6 +116,7 @@ export function GuidePanel({ project, analysis, net, onAdd, section }: Props) {
           <li>Heaters only above the pinch, coolers only below it, and no heat across the pinch.</li>
         </ol>
       </details>
+      </div>
     </section>
   );
 }
