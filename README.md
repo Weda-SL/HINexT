@@ -43,8 +43,11 @@ The calculation module is covered by automated tests (`npm test`). Energy target
 | Four-stream problem (Kemp, 2007; Linnhoff et al., 1982) | 10 K | 20 kW | 60 kW | 90 / 80 °C |
 | Linnhoff & Hindmarsh (1983) | 20 K | 107.5 kW | 40 kW | 90 / 70 °C |
 | Smith (2016), two-reactor process | 10 K | 750 kW | 1000 kW | 150 / 140 °C |
+| Smith (2016), stream splitting example | 20 K | 9.2 MW | 6.4 MW | 520 / 500 °C |
 
 The network tests reproduce the Kemp four-stream MER design (6 units, QH = 20 kW, QC = 60 kW) and its textbook evolution: breaking the Hot 4–Cold 1 loop (x = 30 kW) and relaxing along steam → Cold 1 → Hot 4 → cooling water, where x = 7.5 kW restores ΔTmin (QH = 27.5 kW, QC = 67.5 kW).
+
+The stream-splitting tests reproduce Smith's published split design (stream 1 split above the pinch into CP 0.040 and 0.005 MW/K branches; 7 units at QH = 9.2 MW, QC = 6.4 MW), and the design guide suggests that same split. Following the guide on Linnhoff & Hindmarsh (1983) splits H2 below the pinch (CP 3 + 5) and reaches the energy targets.
 
 Other tests check the Problem Table interval balances and cascade, composite and GCC end points, multiple-utility placement, the Bath formula against hand calculations, the minimum-units target, annualisation, every capital cost model, supertargeting, threshold problems, individual ΔT contributions and the `.pinch` file round trip.
 

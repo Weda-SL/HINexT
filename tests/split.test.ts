@@ -140,3 +140,25 @@ describe('design guide: placement', () => {
     }
   });
 });
+
+describe('Smith stream splitting example', () => {
+  const ex = (key: string) => EXAMPLES.find((e) => e.key === key)!.build();
+
+  it('the published MER network with the split is complete, at the targets and feasible', () => {
+    const { a, net } = run(ex('smith-split-mer'));
+    expect(net.issues).toHaveLength(0);
+    expect(net.complete).toBe(true);
+    expect(net.qh).toBeCloseTo(a.pt.qhMin, 6);
+    expect(net.qc).toBeCloseTo(a.pt.qcMin, 6);
+    expect(net.qh).toBeCloseTo(9200, 6);
+    expect(net.streams.get('s1')!.branches!.above!.map((b) => +b.cp.toFixed(9))).toEqual([40, 5]);
+  });
+
+  it('the guide suggests the published split of stream 1 above the pinch (CP 0.040 + 0.005)', () => {
+    const p = ex('smith-split');
+    const { a, net } = run(p);
+    const above = designGuide(p, a, net).regions.find((r) => r.region === 'above')!;
+    expect(above.split?.stream).toBe('s1');
+    expect(above.split!.cps.map((c) => +c.toFixed(9))).toEqual([40, 5]);
+  });
+});

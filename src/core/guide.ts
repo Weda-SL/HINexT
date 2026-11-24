@@ -242,6 +242,16 @@ function suggestSplit(region: Region, hot: End[], cold: End[], project: Project)
     if (partner && sm[i].cp <= partner.cp + 1e-9) continue;
     const e = sm[i];
     if (isSplit(e)) return undefined;
+    // preferred: one branch sized to tick off another free partner exactly, the rest within the CP of this partner
+    const sideDT = e.cp > 0 ? e.rem / e.cp : 0;
+    for (const other of bg) {
+      if (other === partner || !(sideDT > 0)) continue;
+      const small = other.rem / sideDT;
+      const rest = e.cp - small;
+      if (small > 0.02 * e.cp && small <= other.cp + 1e-9 && rest > 0 && partner && rest <= partner.cp + 1e-9) {
+        return make(e, [rest, small], above ? `${e.s.name} (CP ${fmt(e.cp)}) is larger than any free cold stream at the pinch, so the CP rule cannot be met. One branch fits ${partner.s.name}; the other is sized to tick off ${other.s.name}.` : `${e.s.name} (CP ${fmt(e.cp)}) is larger than any free hot stream at the pinch, so the CP rule cannot be met. One branch fits ${partner.s.name}; the other is sized to tick off ${other.s.name}.`);
+      }
+    }
     const fit = partner ? partner.cp : e.cp / 2;
     const rest = e.cp - fit;
     if (!(rest > 0.02 * e.cp)) return undefined;
